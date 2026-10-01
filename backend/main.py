@@ -93,3 +93,59 @@ def sleeper_leagues(season: str):
         "league_count": len(leagues),
         "leagues": leagues,
     }
+
+
+@app.get("/api/v1/sleeper/league/{league_id}/rosters")
+def sleeper_rosters(league_id: str):
+    client = SleeperClient()
+
+    try:
+        rosters = client.get_rosters(league_id)
+        users = client.get_users(league_id)
+
+    except SleeperAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    user_map = {
+        user.get("user_id"): user
+        for user in users
+        if user.get("user_id")
+    }
+
+    enriched_rosters = []
+
+    for roster in rosters:
+        owner_id = roster.get("owner_id")
+        owner = user_map.get(owner_id)
+
+        enriched_rosters.append(
+            {
+                "roster_id": roster.get("roster_id"),
+                "owner_id": owner_id,
+                "owner_username": (
+                    owner.get("display_name")
+                    if owner
+                    else None
+                ),
+                "owner_username_normalized": (
+                    owner.get("username")
+                    if owner
+                    else None
+                ),
+                "players": roster.get("players", []),
+                "starters": roster.get("starters", []),
+                "reserve": roster.get("reserve", []),
+                "settings": roster.get("settings", {}),
+                "metadata": roster.get("metadata", {}),
+            }
+        )
+
+    return {
+        "platform": "sleeper",
+        "league_id": league_id,
+        "roster_count": len(enriched_rosters),
+        "rosters": enriched_rosters,
+    }
