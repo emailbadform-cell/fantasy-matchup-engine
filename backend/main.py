@@ -62,12 +62,12 @@ def sleeper_user(username: str):
     }
 
 
-@app.get("/api/v1/sleeper/leagues/{season}")
-def sleeper_leagues(season: str):
+@app.get("/api/v1/sleeper/leagues/{username}/{season}")
+def sleeper_leagues(username: str, season: str):
     client = SleeperClient()
 
     try:
-        user = client.get_user("xTheSleeperSyndicate")
+        user = client.get_user(username)
 
         if not user:
             raise HTTPException(
@@ -89,6 +89,8 @@ def sleeper_leagues(season: str):
 
     return {
         "platform": "sleeper",
+        "username": user.get("username"),
+        "user_id": user.get("user_id"),
         "season": season,
         "league_count": len(leagues),
         "leagues": leagues,
@@ -148,4 +150,23 @@ def sleeper_rosters(league_id: str):
         "league_id": league_id,
         "roster_count": len(enriched_rosters),
         "rosters": enriched_rosters,
+    }
+
+
+@app.get("/api/v1/sleeper/players")
+def sleeper_players():
+    client = SleeperClient()
+
+    try:
+        players = client.get_players()
+    except SleeperAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "platform": "sleeper",
+        "player_count": len(players),
+        "players": players,
     }
