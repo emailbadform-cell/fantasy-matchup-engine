@@ -389,3 +389,171 @@ def sleeper_enriched_matchups(league_id: str, week: int):
         "matchup_count": len(enriched_matchups),
         "matchups": enriched_matchups,
     }
+
+
+@app.get(
+    "/api/v1/sleeper/league/{league_id}/matchups/{week}/team/{username}"
+)
+def sleeper_team_matchup(
+    league_id: str,
+    week: int,
+    username: str,
+):
+    client = SleeperClient()
+
+    if week < 1 or week > 18:
+        raise HTTPException(
+            status_code=400,
+            detail="NFL week must be between 1 and 18.",
+        )
+
+    try:
+        user = client.get_user(username)
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Sleeper user not found.",
+            )
+
+        rosters = client.get_rosters(league_id)
+        users = client.get_users(league_id)
+        matchups = client.get_matchups(
+            league_id=league_id,
+            week=week,
+        )
+
+    except SleeperAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    user_id = user.get("user_id")
+
+    user_map = {
+        league_user.get("user_id"): league_user
+        for league_user in users
+        if league_user.get("user_id")
+    }
+
+    roster_map = {
+        roster.get("roster_id"): roster
+        for roster in rosters
+        if roster.get("roster_id") is not None
+    }
+
+    target_roster = None
+
+    for roster in rosters:
+        if roster.get("owner_id") == user_id:
+            target_roster = roster
+            break
+
+    if not target_roster:
+        raise HTTPException(
+            status_code=404,
+            detail="User roster not found in this league.",
+        )
+
+    target_roster_id = target_roster.get("roster_id")
+
+    target_matchup = None
+
+    for matchup in matchups:
+        if matchup.get("roster_id") == target_roster_id:
+            target_matchup = matchup
+            break
+
+    if not target_matchup:
+        raise HTTPException(
+            status_code=404,
+            detail="No matchup found for this roster and week.",
+        )
+
+    matchup_id = target_matchup.get("matchup_id")
+
+    if matchup_id is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Roster does not currently have a matchup ID.",
+        )
+
+    opponent_matchup = None
+
+    for matchup in matchups:
+        if (
+            matchup.get("matchup_id") == matchup_id
+            and matchup.get("roster_id") != target_roster_id
+        ):
+            opponent_matchup = matchup
+            break
+
+    if not opponent_matchup:
+        raise HTTPException(
+            status_code=404,
+            detail="Opponent matchup not found.",
+        )
+
+    opponent_roster_id = opponent_matchup.get("roster_id")
+    opponent_roster = roster_map.get(opponent_roster_id)
+
+    target_owner = user_map.get(target_roster.get("owner_id"))
+    opponent_owner = (
+        user_map.get(opponent_roster.get("owner_id"))
+        if opponent_roster
+        else None
+    )
+
+    return {
+        "platform": "sleeper",
+        "league_id": league_id,
+        "week": week,
+        "matchup_id": matchup_id,
+        "team": {
+            "roster_id": target_roster_id,
+            "owner_id": target_roster.get("owner_id"),
+            "username": (
+                target_owner.get("username")
+                if target_owner
+                else username
+            ),
+            "display_name": (
+                target_owner.get("display_name")
+                if target_owner
+                else None
+            ),
+            "points": target_matchup.get("points"),
+            "players_points": target_matchup.get("players_points"),
+            "starters": target_matchup.get("starters"),
+            "starters_points": target_matchup.get(
+                "starters_points"
+            ),
+        },
+        "opponent": {
+            "roster_id": opponent_roster_id,
+            "owner_id": (
+                opponent_roster.get("owner_id")
+                if opponent_roster
+                else None
+            ),
+            "username": (
+                opponent_owner.get("username")
+                if opponent_owner
+                else None
+            ),
+            "display_name": (
+                opponent_owner.get("display_name")
+                if opponent_owner
+                else None
+            ),
+            "points": opponent_matchup.get("points"),
+            "players_points": opponent_matchup.get(
+                "players_points"
+            ),
+            "starters": opponent_matchup.get("starters"),
+            "starters_points": opponent_matchup.get(
+                "starters_points"
+            ),
+        },
+    }
