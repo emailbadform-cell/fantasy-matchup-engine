@@ -27,9 +27,9 @@ app.add_middleware(
 )
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # GENERAL
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/health")
 def health():
@@ -54,9 +54,9 @@ def status():
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # SLEEPER USER
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/sleeper/user/{username}")
 def sleeper_user(username: str):
@@ -73,7 +73,7 @@ def sleeper_user(username: str):
     if not user:
         raise HTTPException(
             status_code=404,
-            detail="Sleeper user not found",
+            detail="Sleeper user not found.",
         )
 
     return {
@@ -82,9 +82,9 @@ def sleeper_user(username: str):
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # SLEEPER LEAGUES
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/sleeper/leagues/{username}/{season}")
 def sleeper_leagues(username: str, season: str):
@@ -96,7 +96,7 @@ def sleeper_leagues(username: str, season: str):
         if not user:
             raise HTTPException(
                 status_code=404,
-                detail="Sleeper user not found",
+                detail="Sleeper user not found.",
             )
 
         leagues = client.get_leagues(
@@ -121,9 +121,9 @@ def sleeper_leagues(username: str, season: str):
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # SLEEPER ROSTERS
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/sleeper/league/{league_id}/rosters")
 def sleeper_rosters(league_id: str):
@@ -181,9 +181,9 @@ def sleeper_rosters(league_id: str):
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # SLEEPER PLAYER DATABASE
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/sleeper/players")
 def sleeper_players():
@@ -204,9 +204,9 @@ def sleeper_players():
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # ENRICHED SLEEPER ROSTERS
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/sleeper/league/{league_id}/rosters/enriched")
 def sleeper_enriched_rosters(league_id: str):
@@ -321,9 +321,9 @@ def sleeper_enriched_rosters(league_id: str):
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # SLEEPER MATCHUPS
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/sleeper/league/{league_id}/matchups/{week}")
 def sleeper_matchups(league_id: str, week: int):
@@ -431,9 +431,9 @@ def sleeper_enriched_matchups(league_id: str, week: int):
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # DIRECT TEAM MATCHUP
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get(
     "/api/v1/sleeper/league/{league_id}/matchups/{week}/team/{username}"
@@ -596,9 +596,7 @@ def sleeper_team_matchup(
             "players_points": opponent_matchup.get(
                 "players_points"
             ),
-            "starters": opponent_matchup.get(
-                "starters"
-            ),
+            "starters": opponent_matchup.get("starters"),
             "starters_points": opponent_matchup.get(
                 "starters_points"
             ),
@@ -606,9 +604,9 @@ def sleeper_team_matchup(
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # NFLVERSE SCHEDULE
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get("/api/v1/nfl/schedule/{season}")
 def nfl_schedule(season: int):
@@ -734,9 +732,9 @@ def nfl_team_schedule(
     }
 
 
-# ---------------------------------------------------------------------------
+# ============================================================================
 # FANTASY STARTER -> NFL OPPONENT BRIDGE
-# ---------------------------------------------------------------------------
+# ============================================================================
 
 @app.get(
     "/api/v1/fantasy/league/{league_id}/team/{username}/week/{week}/matchup"
@@ -762,9 +760,9 @@ def fantasy_weekly_matchup(
             detail="Invalid NFL season.",
         )
 
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Get Sleeper data
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     try:
         user = sleeper.get_user(username)
@@ -803,9 +801,9 @@ def fantasy_weekly_matchup(
         if roster.get("roster_id") is not None
     }
 
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Find user's roster
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     target_roster = None
 
@@ -822,9 +820,9 @@ def fantasy_weekly_matchup(
 
     target_roster_id = target_roster.get("roster_id")
 
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Find fantasy matchup
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     target_matchup = None
 
@@ -847,9 +845,9 @@ def fantasy_weekly_matchup(
             detail="Fantasy matchup ID is unavailable.",
         )
 
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
     # Find opponent
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------------
 
     opponent_matchup = None
 
@@ -858,5 +856,175 @@ def fantasy_weekly_matchup(
             matchup.get("matchup_id") == matchup_id
             and matchup.get("roster_id") != target_roster_id
         ):
-            opp
+            opponent_matchup = matchup
+            break
+
+    if not opponent_matchup:
+        raise HTTPException(
+            status_code=404,
+            detail="Fantasy opponent not found.",
+        )
+
+    opponent_roster_id = opponent_matchup.get("roster_id")
+    opponent_roster = roster_map.get(opponent_roster_id)
+
+    target_owner = user_map.get(
+        target_roster.get("owner_id")
+    )
+
+    opponent_owner = (
+        user_map.get(
+            opponent_roster.get("owner_id")
+        )
+        if opponent_roster
+        else None
+    )
+
+    # ------------------------------------------------------------------------
+    # Build player -> NFL opponent data
+    # ------------------------------------------------------------------------
+
+    enriched_starters = []
+
+    for player_id in target_matchup.get("starters", []):
+        player = players.get(str(player_id))
+
+        # Defensive team IDs such as BAL may not exist in
+        # the normal Sleeper player database.
+        if not player:
+            enriched_starters.append(
+                {
+                    "player_id": player_id,
+                    "name": None,
+                    "first_name": None,
+                    "last_name": None,
+                    "position": "DEF",
+                    "fantasy_positions": ["DEF"],
+                    "team": str(player_id),
+                    "nfl_opponent": None,
+                    "game": None,
+                    "status": None,
+                    "injury_status": None,
+                    "fantasy_points": target_matchup.get(
+                        "players_points",
+                        {},
+                    ).get(
+                        str(player_id),
+                        0,
+                    ),
+                }
+            )
+            continue
+
+        nfl_team = player.get("team")
+
+        game = None
+        opponent = None
+
+        if nfl_team:
+            try:
+                game = nfl.get_team_game(
+                    season=season,
+                    week=week,
+                    team=nfl_team,
+                )
+
+                if game:
+                    away_team = game.get("away_team")
+                    home_team = game.get("home_team")
+
+                    if away_team == nfl_team:
+                        opponent = home_team
+                    elif home_team == nfl_team:
+                        opponent = away_team
+
+            except NFLVerseAPIError:
+                game = None
+                opponent = None
+
+        enriched_starters.append(
+            {
+                "player_id": player_id,
+                "name": player.get("full_name"),
+                "first_name": player.get("first_name"),
+                "last_name": player.get("last_name"),
+                "position": player.get("position"),
+                "fantasy_positions": player.get(
+                    "fantasy_positions",
+                    [],
+                ),
+                "team": nfl_team,
+                "nfl_opponent": opponent,
+                "game": game,
+                "status": player.get("status"),
+                "injury_status": player.get(
+                    "injury_status"
+                ),
+                "fantasy_points": target_matchup.get(
+                    "players_points",
+                    {},
+                ).get(
+                    str(player_id),
+                    0,
+                ),
+            }
+        )
+
+    # ------------------------------------------------------------------------
+    # Return complete fantasy -> NFL matchup object
+    # ------------------------------------------------------------------------
+
+    return {
+        "platform": "sleeper",
+        "schedule_source": "nflverse",
+        "season": season,
+        "week": week,
+        "league_id": league_id,
+        "matchup_id": matchup_id,
+        "team": {
+            "roster_id": target_roster_id,
+            "owner_id": target_roster.get("owner_id"),
+            "username": (
+                target_owner.get("username")
+                if target_owner
+                else username
+            ),
+            "display_name": (
+                target_owner.get("display_name")
+                if target_owner
+                else None
+            ),
+            "fantasy_points": target_matchup.get(
+                "points",
+                0,
+            ),
+            "starters": enriched_starters,
+        },
+        "opponent": {
+            "roster_id": opponent_roster_id,
+            "owner_id": (
+                opponent_roster.get("owner_id")
+                if opponent_roster
+                else None
+            ),
+            "username": (
+                opponent_owner.get("username")
+                if opponent_owner
+                else None
+            ),
+            "display_name": (
+                opponent_owner.get("display_name")
+                if opponent_owner
+                else None
+            ),
+            "fantasy_points": opponent_matchup.get(
+                "points",
+                0,
+            ),
+            "starters": opponent_matchup.get(
+                "starters",
+                [],
+            ),
+        },
+    }
 ```
