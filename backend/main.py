@@ -1,4 +1,3 @@
-```python
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -27,9 +26,9 @@ app.add_middleware(
 )
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # GENERAL
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/health")
 def health():
@@ -54,9 +53,9 @@ def status():
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # SLEEPER USER
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/sleeper/user/{username}")
 def sleeper_user(username: str):
@@ -65,16 +64,10 @@ def sleeper_user(username: str):
     try:
         user = client.get_user(username)
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="Sleeper user not found.",
-        )
+        raise HTTPException(status_code=404, detail="Sleeper user not found")
 
     return {
         "platform": "sleeper",
@@ -82,9 +75,9 @@ def sleeper_user(username: str):
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # SLEEPER LEAGUES
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/sleeper/leagues/{username}/{season}")
 def sleeper_leagues(username: str, season: str):
@@ -96,7 +89,7 @@ def sleeper_leagues(username: str, season: str):
         if not user:
             raise HTTPException(
                 status_code=404,
-                detail="Sleeper user not found.",
+                detail="Sleeper user not found",
             )
 
         leagues = client.get_leagues(
@@ -104,12 +97,8 @@ def sleeper_leagues(username: str, season: str):
             season=season,
             sport="nfl",
         )
-
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {
         "platform": "sleeper",
@@ -121,9 +110,9 @@ def sleeper_leagues(username: str, season: str):
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # SLEEPER ROSTERS
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/sleeper/league/{league_id}/rosters")
 def sleeper_rosters(league_id: str):
@@ -132,12 +121,8 @@ def sleeper_rosters(league_id: str):
     try:
         rosters = client.get_rosters(league_id)
         users = client.get_users(league_id)
-
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     user_map = {
         user.get("user_id"): user
@@ -156,14 +141,10 @@ def sleeper_rosters(league_id: str):
                 "roster_id": roster.get("roster_id"),
                 "owner_id": owner_id,
                 "owner_username": (
-                    owner.get("display_name")
-                    if owner
-                    else None
+                    owner.get("display_name") if owner else None
                 ),
                 "owner_username_normalized": (
-                    owner.get("username")
-                    if owner
-                    else None
+                    owner.get("username") if owner else None
                 ),
                 "players": roster.get("players", []),
                 "starters": roster.get("starters", []),
@@ -181,9 +162,9 @@ def sleeper_rosters(league_id: str):
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # SLEEPER PLAYER DATABASE
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/sleeper/players")
 def sleeper_players():
@@ -192,10 +173,7 @@ def sleeper_players():
     try:
         players = client.get_players()
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {
         "platform": "sleeper",
@@ -204,9 +182,9 @@ def sleeper_players():
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # ENRICHED SLEEPER ROSTERS
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/sleeper/league/{league_id}/rosters/enriched")
 def sleeper_enriched_rosters(league_id: str):
@@ -216,12 +194,8 @@ def sleeper_enriched_rosters(league_id: str):
         rosters = client.get_rosters(league_id)
         users = client.get_users(league_id)
         players = client.get_players()
-
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     user_map = {
         user.get("user_id"): user
@@ -296,14 +270,10 @@ def sleeper_enriched_rosters(league_id: str):
                 "roster_id": roster.get("roster_id"),
                 "owner_id": owner_id,
                 "owner_username": (
-                    owner.get("display_name")
-                    if owner
-                    else None
+                    owner.get("display_name") if owner else None
                 ),
                 "owner_username_normalized": (
-                    owner.get("username")
-                    if owner
-                    else None
+                    owner.get("username") if owner else None
                 ),
                 "players": enriched_players,
                 "starters": enriched_starters,
@@ -321,9 +291,9 @@ def sleeper_enriched_rosters(league_id: str):
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # SLEEPER MATCHUPS
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/sleeper/league/{league_id}/matchups/{week}")
 def sleeper_matchups(league_id: str, week: int):
@@ -341,10 +311,7 @@ def sleeper_matchups(league_id: str, week: int):
             week=week,
         )
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {
         "platform": "sleeper",
@@ -372,12 +339,8 @@ def sleeper_enriched_matchups(league_id: str, week: int):
         )
         users = client.get_users(league_id)
         rosters = client.get_rosters(league_id)
-
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     user_map = {
         user.get("user_id"): user
@@ -406,14 +369,10 @@ def sleeper_enriched_matchups(league_id: str, week: int):
                 "roster_id": roster_id,
                 "owner_id": owner_id,
                 "owner_username": (
-                    owner.get("display_name")
-                    if owner
-                    else None
+                    owner.get("display_name") if owner else None
                 ),
                 "owner_username_normalized": (
-                    owner.get("username")
-                    if owner
-                    else None
+                    owner.get("username") if owner else None
                 ),
                 "points": matchup.get("points"),
                 "players_points": matchup.get("players_points"),
@@ -431,9 +390,9 @@ def sleeper_enriched_matchups(league_id: str, week: int):
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # DIRECT TEAM MATCHUP
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get(
     "/api/v1/sleeper/league/{league_id}/matchups/{week}/team/{username}"
@@ -466,12 +425,8 @@ def sleeper_team_matchup(
             league_id=league_id,
             week=week,
         )
-
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     user_id = user.get("user_id")
 
@@ -571,9 +526,7 @@ def sleeper_team_matchup(
             "points": target_matchup.get("points"),
             "players_points": target_matchup.get("players_points"),
             "starters": target_matchup.get("starters"),
-            "starters_points": target_matchup.get(
-                "starters_points"
-            ),
+            "starters_points": target_matchup.get("starters_points"),
         },
         "opponent": {
             "roster_id": opponent_roster_id,
@@ -593,20 +546,16 @@ def sleeper_team_matchup(
                 else None
             ),
             "points": opponent_matchup.get("points"),
-            "players_points": opponent_matchup.get(
-                "players_points"
-            ),
+            "players_points": opponent_matchup.get("players_points"),
             "starters": opponent_matchup.get("starters"),
-            "starters_points": opponent_matchup.get(
-                "starters_points"
-            ),
+            "starters_points": opponent_matchup.get("starters_points"),
         },
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # NFLVERSE SCHEDULE
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get("/api/v1/nfl/schedule/{season}")
 def nfl_schedule(season: int):
@@ -621,10 +570,7 @@ def nfl_schedule(season: int):
     try:
         games = client.get_schedule(season)
     except NFLVerseAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {
         "source": "nflverse",
@@ -659,10 +605,7 @@ def nfl_schedule_week(
             week=week,
         )
     except NFLVerseAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     return {
         "source": "nflverse",
@@ -702,10 +645,7 @@ def nfl_team_schedule(
             team=team,
         )
     except NFLVerseAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     if not game:
         raise HTTPException(
@@ -732,9 +672,9 @@ def nfl_team_schedule(
     }
 
 
-# ============================================================================
+# ---------------------------------------------------------------------------
 # FANTASY STARTER -> NFL OPPONENT BRIDGE
-# ============================================================================
+# ---------------------------------------------------------------------------
 
 @app.get(
     "/api/v1/fantasy/league/{league_id}/team/{username}/week/{week}/matchup"
@@ -760,10 +700,6 @@ def fantasy_weekly_matchup(
             detail="Invalid NFL season.",
         )
 
-    # ------------------------------------------------------------------------
-    # Get Sleeper data
-    # ------------------------------------------------------------------------
-
     try:
         user = sleeper.get_user(username)
 
@@ -784,10 +720,7 @@ def fantasy_weekly_matchup(
         players = sleeper.get_players()
 
     except SleeperAPIError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=str(exc),
-        ) from exc
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
     user_map = {
         league_user.get("user_id"): league_user
@@ -800,10 +733,6 @@ def fantasy_weekly_matchup(
         for roster in rosters
         if roster.get("roster_id") is not None
     }
-
-    # ------------------------------------------------------------------------
-    # Find user's roster
-    # ------------------------------------------------------------------------
 
     target_roster = None
 
@@ -819,10 +748,6 @@ def fantasy_weekly_matchup(
         )
 
     target_roster_id = target_roster.get("roster_id")
-
-    # ------------------------------------------------------------------------
-    # Find fantasy matchup
-    # ------------------------------------------------------------------------
 
     target_matchup = None
 
@@ -845,10 +770,6 @@ def fantasy_weekly_matchup(
             detail="Fantasy matchup ID is unavailable.",
         )
 
-    # ------------------------------------------------------------------------
-    # Find opponent
-    # ------------------------------------------------------------------------
-
     opponent_matchup = None
 
     for matchup in matchups:
@@ -868,38 +789,27 @@ def fantasy_weekly_matchup(
     opponent_roster_id = opponent_matchup.get("roster_id")
     opponent_roster = roster_map.get(opponent_roster_id)
 
-    target_owner = user_map.get(
-        target_roster.get("owner_id")
-    )
+    target_owner = user_map.get(target_roster.get("owner_id"))
 
     opponent_owner = (
-        user_map.get(
-            opponent_roster.get("owner_id")
-        )
+        user_map.get(opponent_roster.get("owner_id"))
         if opponent_roster
         else None
     )
-
-    # ------------------------------------------------------------------------
-    # Build player -> NFL opponent data
-    # ------------------------------------------------------------------------
 
     enriched_starters = []
 
     for player_id in target_matchup.get("starters", []):
         player = players.get(str(player_id))
 
-        # Defensive team IDs such as BAL may not exist in
-        # the normal Sleeper player database.
+        # Sleeper defense IDs such as BAL, PHI, DET, etc. are
+        # not normal player records.
         if not player:
             enriched_starters.append(
                 {
                     "player_id": player_id,
                     "name": None,
-                    "first_name": None,
-                    "last_name": None,
                     "position": "DEF",
-                    "fantasy_positions": ["DEF"],
                     "team": str(player_id),
                     "nfl_opponent": None,
                     "game": None,
@@ -908,10 +818,7 @@ def fantasy_weekly_matchup(
                     "fantasy_points": target_matchup.get(
                         "players_points",
                         {},
-                    ).get(
-                        str(player_id),
-                        0,
-                    ),
+                    ).get(str(player_id), 0),
                 }
             )
             continue
@@ -957,22 +864,13 @@ def fantasy_weekly_matchup(
                 "nfl_opponent": opponent,
                 "game": game,
                 "status": player.get("status"),
-                "injury_status": player.get(
-                    "injury_status"
-                ),
+                "injury_status": player.get("injury_status"),
                 "fantasy_points": target_matchup.get(
                     "players_points",
                     {},
-                ).get(
-                    str(player_id),
-                    0,
-                ),
+                ).get(str(player_id), 0),
             }
         )
-
-    # ------------------------------------------------------------------------
-    # Return complete fantasy -> NFL matchup object
-    # ------------------------------------------------------------------------
 
     return {
         "platform": "sleeper",
@@ -994,10 +892,7 @@ def fantasy_weekly_matchup(
                 if target_owner
                 else None
             ),
-            "fantasy_points": target_matchup.get(
-                "points",
-                0,
-            ),
+            "fantasy_points": target_matchup.get("points", 0),
             "starters": enriched_starters,
         },
         "opponent": {
@@ -1017,14 +912,7 @@ def fantasy_weekly_matchup(
                 if opponent_owner
                 else None
             ),
-            "fantasy_points": opponent_matchup.get(
-                "points",
-                0,
-            ),
-            "starters": opponent_matchup.get(
-                "starters",
-                [],
-            ),
+            "fantasy_points": opponent_matchup.get("points", 0),
+            "starters": opponent_matchup.get("starters", []),
         },
     }
-```
