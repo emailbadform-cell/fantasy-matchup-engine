@@ -60,3 +60,36 @@ def sleeper_user(username: str):
         "platform": "sleeper",
         "user": user,
     }
+
+
+@app.get("/api/v1/sleeper/leagues/{season}")
+def sleeper_leagues(season: str):
+    client = SleeperClient()
+
+    try:
+        user = client.get_user("xTheSleeperSyndicate")
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="Sleeper user not found",
+            )
+
+        leagues = client.get_leagues(
+            user_id=user["user_id"],
+            season=season,
+            sport="nfl",
+        )
+
+    except SleeperAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "platform": "sleeper",
+        "season": season,
+        "league_count": len(leagues),
+        "leagues": leagues,
+    }
