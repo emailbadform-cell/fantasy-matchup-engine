@@ -34,7 +34,7 @@ class SleeperClient:
         return response.json()
 
     def get_user(self, username: str) -> dict[str, Any]:
-        """Resolve a Sleeper username to its user information."""
+        """Resolve a Sleeper username to user information."""
         return self._get(f"/user/{username}")
 
     def get_leagues(
@@ -44,7 +44,9 @@ class SleeperClient:
         sport: str = "nfl",
     ) -> list[dict[str, Any]]:
         """Return the user's leagues for a season."""
-        return self._get(f"/user/{user_id}/leagues/{sport}/{season}")
+        return self._get(
+            f"/user/{user_id}/leagues/{sport}/{season}"
+        )
 
     def get_league(self, league_id: str) -> dict[str, Any]:
         """Return league information."""
@@ -64,4 +66,10 @@ class SleeperClient:
         week: int,
     ) -> list[dict[str, Any]]:
         """Return matchup information for a week."""
-        return self._get(f"/league/{league_id}/matchups/{week}")
+        return self._get(
+            f"/league/{league_id}/matchups/{week}"
+        )
+
+    def get_players(self) -> dict[str, dict[str, Any]]:
+        """Return the Sleeper NFL player database."""
+        return self._get("/players/nfl")
