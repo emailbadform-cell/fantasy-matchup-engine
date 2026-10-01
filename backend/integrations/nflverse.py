@@ -1,82 +1,124 @@
-"""NFL schedule integration using the live nflverse schedule dataset."""
-
-from __future__ import annotations
-
-import csv
-import io
-from typing import Any
+```python
+from typing import Any, Dict, List, Optional
 
 import requests
 
 
-SCHEDULE_URL = (
-    "https://github.com/nflverse/nfldata/raw/master/data/games.csv"
-)
-
-
 class NFLVerseAPIError(Exception):
-    """Raised when the nflverse schedule cannot be retrieved."""
+    """Raised when an NFLverse request fails."""
 
 
 class NFLVerseClient:
-    """Read-only client for the nflverse NFL schedule."""
+    BASE_URL = "https://github.com/nflverse/nfldata/raw/master/data"
 
-    def __init__(self, timeout: int = 15) -> None:
+    def __init__(self, timeout: int = 30):
         self.timeout = timeout
+        self.session = requests.Session()
 
-    def get_schedule(self, season: int | None = None) -> list[dict[str, Any]]:
+    # ------------------------------------------------------------------
+    # INTERNAL REQUEST
+    # ------------------------------------------------------------------
+
+    def _get_json(self, url: str) -> Any:
         try:
-            response = requests.get(
-                SCHEDULE_URL,
+            response = self.session.get(
+                url,
                 timeout=self.timeout,
             )
-            response.raise_for_status()
         except requests.RequestException as exc:
             raise NFLVerseAPIError(
-                "Unable to retrieve the nflverse NFL schedule."
+                f"NFLverse request failed: {exc}"
             ) from exc
+
+        if response.status_code != 200:
+            raise NFLVerseAPIError(
+                f"NFLverse returned HTTP {response.status_code}: {url}"
+            )
 
         try:
-            rows = list(
-                csv.DictReader(
-                    io.StringIO(response.text)
-                )
-            )
-        except (csv.Error, TypeError, ValueError) as exc:
+            return response.json()
+        except ValueError as exc:
             raise NFLVerseAPIError(
-                "Unable to parse the nflverse schedule."
+                f"NFLverse returned invalid JSON: {url}"
             ) from exc
 
-        if season is not None:
-            rows = [
-                row
-                for row in rows
-                if str(row.get("season", "")) == str(season)
-            ]
+    # ------------------------------------------------------------------
+    # SCHEDULE
+    # ------------------------------------------------------------------
 
-        return rows
+    def get_schedule(self, season: int) -> List[Dict[str, Any]]:
+        """
+        Return the full NFL schedule for a season.
+
+        NFLverse publishes the schedule as a JSON file.
+        """
+        url = (
+            f"{self.BASE_URL}/schedules/schedule_{season}.json"
+        )
+
+        data = self._get_json(url)
+
+        if not isinstance(data, list):
+            raise NFLVerseAPIError(
+                f"Unexpected NFLverse schedule format for {season}."
+            )
+
+        return data
+
+    # ------------------------------------------------------------------
+    # WEEK
+    # ------------------------------------------------------------------
 
     def get_week(
         self,
         season: int,
         week: int,
-    ) -> list[dict[str, Any]]:
-        rows = self.get_schedule(season)
+    ) -> List[Dict[str, Any]]:
+        """
+        Return every NFL game for a specific regular-season week.
+        """
+        schedule = self.get_schedule(season)
 
-        return [
-            row
-            for row in rows
-            if str(row.get("week", "")) == str(week)
-            and row.get("game_type") == "REG"
-        ]
+        week_string = str(week)
+
+        games = []
+
+        for game in schedule:
+            game_week = str(game.get("week", ""))
+
+            game_type = str(
+                game.get("game_type", "")
+            ).upper()
+
+            if (
+                game_week == week_string
+                and game_type == "REG"
+            ):
+                games.append(game)
+
+        return games
+
+    # ------------------------------------------------------------------
+    # TEAM GAME
+    # ------------------------------------------------------------------
 
     def get_team_game(
         self,
         season: int,
         week: int,
         team: str,
-    ) -> dict[str, Any] | None:
-        team = team.upper()
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Find a team's game during a specific NFL week.
+
+        This intentionally searches the complete weekly schedule
+        rather than relying on a team-specific endpoint.
+        """
+
+        team = team.upper().strip()
+
+        if not team:
+            return None
 
         games = self.get_week(
             season=season,
@@ -84,20 +126,84 @@ class NFLVerseClient:
         )
 
         for game in games:
-            if (
-                game.get("away_team", "").upper() == team
-                or game.get("home_team", "").upper() == team
-            ):
+            away_team = str(
+                game.get("away_team", "")
+            ).upper()
+
+            home_team = str(
+                game.get("home_team", "")
+            ).upper()
+
+            if team in {
+                away_team,
+                home_team,
+            }:
                 return game
 
         return None
+
+    # ------------------------------------------------------------------
+    # TEAM SCHEDULE INDEX
+    # ------------------------------------------------------------------
+
+    def get_week_team_index(
+        self,
+        season: int,
+        week: int,
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Build:
+
+            {
+                "LAR": game,
+                "LV": game,
+                "KC": game,
+                ...
+            }
+
+        This allows the fantasy engine to resolve all players'
+        opponents from one schedule download.
+        """
+
+        games = self.get_week(
+            season=season,
+            week=week,
+        )
+
+        team_index: Dict[str, Dict[str, Any]] = {}
+
+        for game in games:
+            away_team = game.get("away_team")
+            home_team = game.get("home_team")
+
+            if away_team:
+                team_index[
+                    str(away_team).upper()
+                ] = game
+
+            if home_team:
+                team_index[
+                    str(home_team).upper()
+                ] = game
+
+        return team_index
+
+    # ------------------------------------------------------------------
+    # TEAM OPPONENT
+    # ------------------------------------------------------------------
 
     def get_team_opponent(
         self,
         season: int,
         week: int,
         team: str,
-    ) -> str | None:
+    ) -> Optional[str]:
+        """
+        Return the opposing NFL team code.
+        """
+
+        team = team.upper().strip()
+
         game = self.get_team_game(
             season=season,
             week=week,
@@ -107,10 +213,13 @@ class NFLVerseClient:
         if not game:
             return None
 
-        team = team.upper()
+        away_team = str(
+            game.get("away_team", "")
+        ).upper()
 
-        away_team = game.get("away_team", "").upper()
-        home_team = game.get("home_team", "").upper()
+        home_team = str(
+            game.get("home_team", "")
+        ).upper()
 
         if away_team == team:
             return home_team
@@ -119,3 +228,4 @@ class NFLVerseClient:
             return away_team
 
         return None
+```
