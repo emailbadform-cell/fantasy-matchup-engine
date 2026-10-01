@@ -1,7 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.integrations.sleeper import SleeperAPIError, SleeperClient
+from backend.integrations.nflverse import (
+    NFLVerseAPIError,
+    NFLVerseClient,
+)
+from backend.integrations.sleeper import (
+    SleeperAPIError,
+    SleeperClient,
+)
 
 
 app = FastAPI(
@@ -33,6 +40,10 @@ def status():
             "original",
             "cb_challenger",
             "full_cb_challenger",
+        ],
+        "integrations": [
+            "sleeper",
+            "nflverse_schedule",
         ],
         "status": "foundation_ready",
     }
@@ -516,7 +527,7 @@ def sleeper_team_matchup(
             "username": (
                 target_owner.get("username")
                 if target_owner
-                else username
+                else None
             ),
             "display_name": (
                 target_owner.get("display_name")
@@ -556,4 +567,133 @@ def sleeper_team_matchup(
                 "starters_points"
             ),
         },
+    }
+
+
+# ---------------------------------------------------------------------------
+# NFLVERSE SCHEDULE
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/v1/nfl/schedule/{season}")
+def nfl_schedule(season: int):
+    client = NFLVerseClient()
+
+    if season < 2020 or season > 2100:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid NFL season.",
+        )
+
+    try:
+        games = client.get_schedule(season)
+    except NFLVerseAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "source": "nflverse",
+        "season": season,
+        "game_count": len(games),
+        "games": games,
+    }
+
+
+@app.get("/api/v1/nfl/schedule/{season}/week/{week}")
+def nfl_schedule_week(
+    season: int,
+    week: int,
+):
+    client = NFLVerseClient()
+
+    if season < 2020 or season > 2100:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid NFL season.",
+        )
+
+    if week < 1 or week > 18:
+        raise HTTPException(
+            status_code=400,
+            detail="NFL week must be between 1 and 18.",
+        )
+
+    try:
+        games = client.get_week(
+            season=season,
+            week=week,
+        )
+    except NFLVerseAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "source": "nflverse",
+        "season": season,
+        "week": week,
+        "game_count": len(games),
+        "games": games,
+    }
+
+
+@app.get("/api/v1/nfl/schedule/{season}/week/{week}/team/{team}")
+def nfl_team_schedule(
+    season: int,
+    week: int,
+    team: str,
+):
+    client = NFLVerseClient()
+
+    if season < 2020 or season > 2100:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid NFL season.",
+        )
+
+    if week < 1 or week > 18:
+        raise HTTPException(
+            status_code=400,
+            detail="NFL week must be between 1 and 18.",
+        )
+
+    team = team.upper()
+
+    try:
+        game = client.get_team_game(
+            season=season,
+            week=week,
+            team=team,
+        )
+    except NFLVerseAPIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=str(exc),
+        ) from exc
+
+    if not game:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No NFL game found for {team} in Week {week}.",
+        )
+
+    away_team = game.get("away_team")
+    home_team = game.get("home_team")
+
+    opponent = (
+        home_team
+        if away_team == team
+        else away_team
+    )
+
+    return {
+        "source": "nflverse",
+        "season": season,
+        "week": week,
+        "team": team,
+        "opponent": opponent,
+        "game": game,
     }
