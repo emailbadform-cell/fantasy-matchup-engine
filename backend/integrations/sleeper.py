@@ -65,7 +65,7 @@ class SleeperClient:
         league_id: str,
         week: int,
     ) -> list[dict[str, Any]]:
-        """Return matchup information for a week."""
+        """Return fantasy matchup information for a week."""
         return self._get(
             f"/league/{league_id}/matchups/{week}"
         )
