@@ -1,5 +1,7 @@
 from typing import Any, Dict, List, Optional
 
+import csv
+import io
 import requests
 
 
@@ -8,7 +10,17 @@ class NFLVerseAPIError(Exception):
 
 
 class NFLVerseClient:
-    BASE_URL = "https://github.com/nflverse/nfldata/raw/master/data"
+    # Current NFLverse games dataset.
+    #
+    # This replaces the old:
+    #   data/schedules/schedule_{season}.json
+    #
+    # NFLverse currently maintains the schedule/game data in
+    # nfldata/data/games.csv.
+    BASE_URL = (
+        "https://raw.githubusercontent.com/"
+        "nflverse/nfldata/master/data/games.csv"
+    )
 
     # Sleeper/NFLverse team-code differences.
     TEAM_ALIASES = {
@@ -31,7 +43,10 @@ class NFLVerseClient:
     # ------------------------------------------------------------------
 
     @classmethod
-    def normalize_team(cls, team: Optional[str]) -> Optional[str]:
+    def normalize_team(
+        cls,
+        team: Optional[str],
+    ) -> Optional[str]:
         """
         Normalize NFL team abbreviations so Sleeper and NFLverse
         can be compared safely.
@@ -42,6 +57,7 @@ class NFLVerseClient:
             LVR -> LV
             WSH -> WAS
         """
+
         if not team:
             return None
 
@@ -59,7 +75,14 @@ class NFLVerseClient:
     # INTERNAL REQUEST
     # ------------------------------------------------------------------
 
-    def _get_json(self, url: str) -> Any:
+    def _get_text(
+        self,
+        url: str,
+    ) -> str:
+        """
+        Download raw text from NFLverse.
+        """
+
         try:
             response = self.session.get(
                 url,
@@ -76,12 +99,7 @@ class NFLVerseClient:
                 f"{response.status_code}: {url}"
             )
 
-        try:
-            return response.json()
-        except ValueError as exc:
-            raise NFLVerseAPIError(
-                f"NFLverse returned invalid JSON: {url}"
-            ) from exc
+        return response.text
 
     # ------------------------------------------------------------------
     # SCHEDULE
@@ -93,22 +111,48 @@ class NFLVerseClient:
     ) -> List[Dict[str, Any]]:
         """
         Return the full NFL schedule for a season.
+
+        NFLverse currently provides schedule/game information through
+        the games.csv dataset rather than the old season-specific
+        schedule_{season}.json files.
         """
 
-        url = (
-            f"{self.BASE_URL}/schedules/"
-            f"schedule_{season}.json"
+        text = self._get_text(
+            self.BASE_URL
         )
 
-        data = self._get_json(url)
-
-        if not isinstance(data, list):
-            raise NFLVerseAPIError(
-                f"Unexpected NFLverse schedule format "
-                f"for {season}."
+        try:
+            reader = csv.DictReader(
+                io.StringIO(text)
             )
 
-        return data
+            rows = list(reader)
+
+        except Exception as exc:
+            raise NFLVerseAPIError(
+                "Unable to parse NFLverse games.csv."
+            ) from exc
+
+        if not rows:
+            raise NFLVerseAPIError(
+                "NFLverse games.csv returned no data."
+            )
+
+        season_string = str(season)
+
+        schedule: List[Dict[str, Any]] = []
+
+        for row in rows:
+            row_season = str(
+                row.get("season", "")
+            ).strip()
+
+            if row_season != season_string:
+                continue
+
+            schedule.append(row)
+
+        return schedule
 
     # ------------------------------------------------------------------
     # WEEK
@@ -123,7 +167,9 @@ class NFLVerseClient:
         Return every regular-season NFL game for a week.
         """
 
-        schedule = self.get_schedule(season)
+        schedule = self.get_schedule(
+            season=season
+        )
 
         week_string = str(week)
 
@@ -132,11 +178,11 @@ class NFLVerseClient:
         for game in schedule:
             game_week = str(
                 game.get("week", "")
-            )
+            ).strip()
 
             game_type = str(
                 game.get("game_type", "")
-            ).upper()
+            ).upper().strip()
 
             if (
                 game_week == week_string
@@ -162,7 +208,9 @@ class NFLVerseClient:
         Team abbreviations are normalized before comparison.
         """
 
-        normalized_team = self.normalize_team(team)
+        normalized_team = self.normalize_team(
+            team
+        )
 
         if not normalized_team:
             return None
@@ -204,7 +252,6 @@ class NFLVerseClient:
         Example:
 
             {
-                "LAR": game,
                 "LA": game,
                 "LV": game,
                 "KC": game
@@ -216,7 +263,10 @@ class NFLVerseClient:
             week=week,
         )
 
-        team_index: Dict[str, Dict[str, Any]] = {}
+        team_index: Dict[
+            str,
+            Dict[str, Any],
+        ] = {}
 
         for game in games:
             away_team = self.normalize_team(
@@ -228,10 +278,14 @@ class NFLVerseClient:
             )
 
             if away_team:
-                team_index[away_team] = game
+                team_index[
+                    away_team
+                ] = game
 
             if home_team:
-                team_index[home_team] = game
+                team_index[
+                    home_team
+                ] = game
 
         return team_index
 
@@ -249,7 +303,9 @@ class NFLVerseClient:
         Return the opposing NFL team code.
         """
 
-        normalized_team = self.normalize_team(team)
+        normalized_team = self.normalize_team(
+            team
+        )
 
         if not normalized_team:
             return None
