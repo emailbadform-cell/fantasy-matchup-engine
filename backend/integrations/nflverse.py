@@ -1,5 +1,3 @@
-from csv import DictReader
-from io import StringIO
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -10,28 +8,18 @@ class NFLVerseAPIError(Exception):
 
 
 class NFLVerseClient:
-    """
-    Client for NFLverse schedule/game data.
+    BASE_URL = "https://github.com/nflverse/nfldata/raw/master/data"
 
-    NFLverse maintains schedule information in games.csv.
-    """
-
-    BASE_URL = (
-        "https://raw.githubusercontent.com/"
-        "nflverse/nfldata/master/data/games.csv"
-    )
-
-    # ------------------------------------------------------------------
-    # NFL TEAM CODE NORMALIZATION
-    # ------------------------------------------------------------------
-
+    # Sleeper/NFLverse team-code differences.
     TEAM_ALIASES = {
-        # Sleeper commonly uses LAR.
-        # NFLverse games data can use LA.
         "LAR": "LA",
-
-        # Keep this extensible for other data-source differences.
+        "LA": "LA",
+        "JAX": "JAX",
         "JAC": "JAX",
+        "LV": "LV",
+        "LVR": "LV",
+        "WAS": "WAS",
+        "WSH": "WAS",
     }
 
     def __init__(self, timeout: int = 30):
@@ -39,13 +27,39 @@ class NFLVerseClient:
         self.session = requests.Session()
 
     # ------------------------------------------------------------------
+    # TEAM NORMALIZATION
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def normalize_team(cls, team: Optional[str]) -> Optional[str]:
+        """
+        Normalize NFL team abbreviations so Sleeper and NFLverse
+        can be compared safely.
+
+        Examples:
+            LAR -> LA
+            JAC -> JAX
+            LVR -> LV
+            WSH -> WAS
+        """
+        if not team:
+            return None
+
+        normalized = str(team).strip().upper()
+
+        if not normalized:
+            return None
+
+        return cls.TEAM_ALIASES.get(
+            normalized,
+            normalized,
+        )
+
+    # ------------------------------------------------------------------
     # INTERNAL REQUEST
     # ------------------------------------------------------------------
 
-    def _get_csv(
-        self,
-        url: str,
-    ) -> List[Dict[str, Any]]:
+    def _get_json(self, url: str) -> Any:
         try:
             response = self.session.get(
                 url,
@@ -63,43 +77,11 @@ class NFLVerseClient:
             )
 
         try:
-            reader = DictReader(
-                StringIO(response.text)
-            )
-
-            return list(reader)
-
-        except Exception as exc:
+            return response.json()
+        except ValueError as exc:
             raise NFLVerseAPIError(
-                f"NFLverse returned invalid CSV: {url}"
+                f"NFLverse returned invalid JSON: {url}"
             ) from exc
-
-    # ------------------------------------------------------------------
-    # TEAM NORMALIZATION
-    # ------------------------------------------------------------------
-
-    def normalize_team(
-        self,
-        team: str,
-    ) -> str:
-        """
-        Convert a team abbreviation from an external source
-        into the abbreviation used by the NFLverse games dataset.
-
-        Examples:
-
-            LAR -> LA
-            JAC -> JAX
-            KC  -> KC
-            LV  -> LV
-        """
-
-        team = str(team).upper().strip()
-
-        return self.TEAM_ALIASES.get(
-            team,
-            team,
-        )
 
     # ------------------------------------------------------------------
     # SCHEDULE
@@ -110,30 +92,23 @@ class NFLVerseClient:
         season: int,
     ) -> List[Dict[str, Any]]:
         """
-        Return the NFL schedule for a season.
+        Return the full NFL schedule for a season.
         """
 
-        rows = self._get_csv(
-            self.BASE_URL
+        url = (
+            f"{self.BASE_URL}/schedules/"
+            f"schedule_{season}.json"
         )
 
-        season_string = str(season)
+        data = self._get_json(url)
 
-        games: List[Dict[str, Any]] = []
-
-        for row in rows:
-            row_season = str(
-                row.get("season", "")
-            ).strip()
-
-            if row_season != season_string:
-                continue
-
-            games.append(
-                dict(row)
+        if not isinstance(data, list):
+            raise NFLVerseAPIError(
+                f"Unexpected NFLverse schedule format "
+                f"for {season}."
             )
 
-        return games
+        return data
 
     # ------------------------------------------------------------------
     # WEEK
@@ -145,13 +120,10 @@ class NFLVerseClient:
         week: int,
     ) -> List[Dict[str, Any]]:
         """
-        Return every regular-season NFL game
-        for a specific week.
+        Return every regular-season NFL game for a week.
         """
 
-        schedule = self.get_schedule(
-            season=season
-        )
+        schedule = self.get_schedule(season)
 
         week_string = str(week)
 
@@ -160,19 +132,17 @@ class NFLVerseClient:
         for game in schedule:
             game_week = str(
                 game.get("week", "")
-            ).strip()
+            )
 
             game_type = str(
                 game.get("game_type", "")
-            ).strip().upper()
+            ).upper()
 
             if (
                 game_week == week_string
                 and game_type == "REG"
             ):
-                games.append(
-                    game
-                )
+                games.append(game)
 
         return games
 
@@ -187,23 +157,15 @@ class NFLVerseClient:
         team: str,
     ) -> Optional[Dict[str, Any]]:
         """
-        Find a team's game during a specific NFL week.
+        Find a team's NFL game for a specific week.
 
-        External sources such as Sleeper may use a different
-        abbreviation than NFLverse. Team aliases are normalized
-        before searching.
+        Team abbreviations are normalized before comparison.
         """
 
-        requested_team = str(
-            team
-        ).upper().strip()
+        normalized_team = self.normalize_team(team)
 
-        if not requested_team:
+        if not normalized_team:
             return None
-
-        normalized_team = self.normalize_team(
-            requested_team
-        )
 
         games = self.get_week(
             season=season,
@@ -211,13 +173,13 @@ class NFLVerseClient:
         )
 
         for game in games:
-            away_team = str(
-                game.get("away_team", "")
-            ).upper().strip()
+            away_team = self.normalize_team(
+                game.get("away_team")
+            )
 
-            home_team = str(
-                game.get("home_team", "")
-            ).upper().strip()
+            home_team = self.normalize_team(
+                game.get("home_team")
+            )
 
             if normalized_team in {
                 away_team,
@@ -237,19 +199,15 @@ class NFLVerseClient:
         week: int,
     ) -> Dict[str, Dict[str, Any]]:
         """
-        Build a team -> game lookup index.
-
-        The index contains both the NFLverse team code and
-        supported external aliases.
+        Build a normalized team -> game index.
 
         Example:
 
             {
-                "LA": game,
                 "LAR": game,
+                "LA": game,
                 "LV": game,
-                "KC": game,
-                ...
+                "KC": game
             }
         """
 
@@ -258,44 +216,22 @@ class NFLVerseClient:
             week=week,
         )
 
-        team_index: Dict[
-            str,
-            Dict[str, Any],
-        ] = {}
+        team_index: Dict[str, Dict[str, Any]] = {}
 
         for game in games:
-            away_team = str(
-                game.get("away_team", "")
-            ).upper().strip()
+            away_team = self.normalize_team(
+                game.get("away_team")
+            )
 
-            home_team = str(
-                game.get("home_team", "")
-            ).upper().strip()
+            home_team = self.normalize_team(
+                game.get("home_team")
+            )
 
             if away_team:
-                team_index[
-                    away_team
-                ] = game
+                team_index[away_team] = game
 
             if home_team:
-                team_index[
-                    home_team
-                ] = game
-
-            # Add reverse aliases so callers can use
-            # Sleeper-style abbreviations.
-            for external_team, nflverse_team in (
-                self.TEAM_ALIASES.items()
-            ):
-                if away_team == nflverse_team:
-                    team_index[
-                        external_team
-                    ] = game
-
-                if home_team == nflverse_team:
-                    team_index[
-                        external_team
-                    ] = game
+                team_index[home_team] = game
 
         return team_index
 
@@ -311,56 +247,34 @@ class NFLVerseClient:
     ) -> Optional[str]:
         """
         Return the opposing NFL team code.
-
-        The returned team code is normalized for the external
-        caller, so LAR is returned as LAR rather than LA.
         """
 
-        requested_team = str(
-            team
-        ).upper().strip()
+        normalized_team = self.normalize_team(team)
 
-        if not requested_team:
+        if not normalized_team:
             return None
-
-        normalized_team = self.normalize_team(
-            requested_team
-        )
 
         game = self.get_team_game(
             season=season,
             week=week,
-            team=requested_team,
+            team=normalized_team,
         )
 
         if not game:
             return None
 
-        away_team = str(
-            game.get("away_team", "")
-        ).upper().strip()
+        away_team = self.normalize_team(
+            game.get("away_team")
+        )
 
-        home_team = str(
-            game.get("home_team", "")
-        ).upper().strip()
-
-        opponent = None
+        home_team = self.normalize_team(
+            game.get("home_team")
+        )
 
         if away_team == normalized_team:
-            opponent = home_team
+            return home_team
 
-        elif home_team == normalized_team:
-            opponent = away_team
+        if home_team == normalized_team:
+            return away_team
 
-        if not opponent:
-            return None
-
-        # Convert NFLverse code back to the caller's
-        # preferred external code.
-        for external_team, nflverse_team in (
-            self.TEAM_ALIASES.items()
-        ):
-            if opponent == nflverse_team:
-                return external_team
-
-        return opponent
+        return None
