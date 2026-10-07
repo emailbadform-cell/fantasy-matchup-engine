@@ -1,0 +1,1833 @@
+{
+  "architecture_version": "1.7.0-stage1-audited",
+  "stage": "2-full-calibration",
+  "season": 2026,
+  "available_weeks": [
+    2,
+    3,
+    4
+  ],
+  "observations": 906,
+  "training_observations": 849,
+  "holdout_observations": 57,
+  "pooled_summary": {
+    "sample_size": 906,
+    "fantasy_points": {
+      "sample_size": 906,
+      "mae": 4.457267243860801,
+      "rmse": 6.392753323428578,
+      "bias": -0.5583166282292411,
+      "median_error": 0.8271923666904322
+    },
+    "by_position": {
+      "QB": {
+        "sample_size": 77,
+        "mae": 7.809657894595355,
+        "rmse": 9.33950625723376,
+        "bias": -2.392115249892769,
+        "median_error": -2.0180573051117445
+      },
+      "RB": {
+        "sample_size": 191,
+        "mae": 4.294624802882936,
+        "rmse": 5.88164762394455,
+        "bias": 1.0161996077235933,
+        "median_error": 1.50277758987899
+      },
+      "WR": {
+        "sample_size": 317,
+        "mae": 4.677932783648063,
+        "rmse": 6.955210043991249,
+        "bias": -1.2770999690647633,
+        "median_error": 0.5807391397373554
+      },
+      "TE": {
+        "sample_size": 159,
+        "mae": 4.288813397215257,
+        "rmse": 6.42005598693783,
+        "bias": -1.2139499733715204,
+        "median_error": -0.07721186417710557
+      },
+      "K": {
+        "sample_size": 66,
+        "mae": 3.0502174900672934,
+        "rmse": 3.7610021974936867,
+        "bias": -1.4470271405132624,
+        "median_error": -1.3773839100947778
+      },
+      "DEF": {
+        "sample_size": 96,
+        "mae": 2.609653654013531,
+        "rmse": 3.027594333240229,
+        "bias": 1.8502751169200156,
+        "median_error": 2.293423140689562
+      }
+    },
+    "counting_stats": {
+      "QB": {
+        "pass_attempts": {
+          "sample_size": 77,
+          "mae": 10.851625901875902,
+          "rmse": 14.153330398908807,
+          "bias": 2.0842929292929293,
+          "median_error": -0.266388888888887
+        },
+        "completions": {
+          "sample_size": 77,
+          "mae": 6.708401443188483,
+          "rmse": 8.530431326261544,
+          "bias": 0.7628623472761649,
+          "median_error": 0.6605068392255902
+        },
+        "passing_yards": {
+          "sample_size": 77,
+          "mae": 85.77284425332213,
+          "rmse": 102.93743476940499,
+          "bias": -4.44818910391312,
+          "median_error": -23.2099145082
+        },
+        "passing_tds": {
+          "sample_size": 77,
+          "mae": 1.059038318002074,
+          "rmse": 1.364933602645412,
+          "bias": -0.5356553277585949,
+          "median_error": -0.37645833333333334
+        },
+        "interceptions": {
+          "sample_size": 77,
+          "mae": 0.5911611150171098,
+          "rmse": 0.7701001049898769,
+          "bias": -0.07222602375484728,
+          "median_error": 0.11918652777777776
+        },
+        "rushing_yards": {
+          "sample_size": 77,
+          "mae": 13.41128560321896,
+          "rmse": 19.462471015709205,
+          "bias": 1.2606954610021746,
+          "median_error": -1.2360611510791353
+        },
+        "rushing_tds": {
+          "sample_size": 77,
+          "mae": 0.20930994683600015,
+          "rmse": 0.4609990241764172,
+          "bias": -0.05707430653332021,
+          "median_error": 0.0
+        }
+      },
+      "RB": {
+        "carries": {
+          "sample_size": 191,
+          "mae": 3.839687101007534,
+          "rmse": 5.386748409605294,
+          "bias": 0.16908462678262431,
+          "median_error": 0.7092218569410189
+        },
+        "rushing_yards": {
+          "sample_size": 191,
+          "mae": 21.021718628644614,
+          "rmse": 31.12803429756401,
+          "bias": 1.4406057711199312,
+          "median_error": 4.120863558194445
+        },
+        "targets": {
+          "sample_size": 191,
+          "mae": 1.5286105074277716,
+          "rmse": 2.0808115354013825,
+          "bias": 0.23643040614864252,
+          "median_error": 0.6245331119542858
+        },
+        "receptions": {
+          "sample_size": 191,
+          "mae": 1.2231295580955721,
+          "rmse": 1.6989164836276662,
+          "bias": 0.03463119003075511,
+          "median_error": 0.3255271017025641
+        },
+        "receiving_yards": {
+          "sample_size": 191,
+          "mae": 10.268710872855308,
+          "rmse": 16.385948897165633,
+          "bias": -0.22029027205177903,
+          "median_error": 1.4293184248179596
+        },
+        "rushing_tds": {
+          "sample_size": 191,
+          "mae": 0.3617092296869863,
+          "rmse": 0.48833325846692455,
+          "bias": 0.16847625735503519,
+          "median_error": 0.1361098243165785
+        },
+        "receiving_tds": {
+          "sample_size": 191,
+          "mae": 0.065907264897302,
+          "rmse": 0.21031374454488136,
+          "bias": -0.024517480735439256,
+          "median_error": 0.011771463185932425
+        }
+      },
+      "WR": {
+        "targets": {
+          "sample_size": 317,
+          "mae": 2.2818615538772677,
+          "rmse": 3.0720851992337215,
+          "bias": -0.17855908895681738,
+          "median_error": 0.3707906621518089
+        },
+        "receptions": {
+          "sample_size": 317,
+          "mae": 1.5821123902273992,
+          "rmse": 2.2358909599547165,
+          "bias": -0.17574565259707323,
+          "median_error": 0.16232255686192565
+        },
+        "receiving_yards": {
+          "sample_size": 317,
+          "mae": 23.003635767196755,
+          "rmse": 35.77407217187471,
+          "bias": -7.1465450075438985,
+          "median_error": 1.152404776772633
+        },
+        "receiving_tds": {
+          "sample_size": 317,
+          "mae": 0.2551024931420774,
+          "rmse": 0.4485372209990879,
+          "bias": -0.06344835049245474,
+          "median_error": 0.07099691351786572
+        }
+      },
+      "TE": {
+        "targets": {
+          "sample_size": 159,
+          "mae": 1.900795073991765,
+          "rmse": 2.7190305741715037,
+          "bias": 0.02702260204359081,
+          "median_error": 0.25143745874033385
+        },
+        "receptions": {
+          "sample_size": 159,
+          "mae": 1.5205363515296004,
+          "rmse": 2.2093296852660935,
+          "bias": -0.16571442219921984,
+          "median_error": -0.06188608170356069
+        },
+        "receiving_yards": {
+          "sample_size": 159,
+          "mae": 17.34730567999121,
+          "rmse": 26.86587072529448,
+          "bias": -1.8960963339554364,
+          "median_error": 1.8220970003951606
+        },
+        "receiving_tds": {
+          "sample_size": 159,
+          "mae": 0.2935486814178067,
+          "rmse": 0.5212274065453403,
+          "bias": -0.14180726715512332,
+          "median_error": 0.061119917649908206
+        }
+      },
+      "K": {
+        "field_goal_attempts": {
+          "sample_size": 66,
+          "mae": 1.158642376142376,
+          "rmse": 1.4627663774350885,
+          "bias": -0.8858345358345358,
+          "median_error": -0.8711904761904762
+        },
+        "field_goals": {
+          "sample_size": 66,
+          "mae": 1.0931297318422317,
+          "rmse": 1.3920257828914502,
+          "bias": -0.7342419432419433,
+          "median_error": -0.8478388888888889
+        },
+        "extra_point_attempts": {
+          "sample_size": 66,
+          "mae": 1.500708101422387,
+          "rmse": 1.7947125098400611,
+          "bias": 0.8628324056895486,
+          "median_error": 0.8290816326530612
+        },
+        "extra_points": {
+          "sample_size": 66,
+          "mae": 1.3486356988249844,
+          "rmse": 1.6491011145159065,
+          "bias": 0.7550018552875694,
+          "median_error": 0.6462798469387754
+        }
+      },
+      "DEF": {
+        "sacks": {
+          "sample_size": 96,
+          "mae": 1.75875,
+          "rmse": 2.0994031614388073,
+          "bias": 0.8751736111111112,
+          "median_error": 1.1800000000000002
+        },
+        "interceptions": {
+          "sample_size": 96,
+          "mae": 0.5359722222222222,
+          "rmse": 0.7228384123511772,
+          "bias": -0.026666666666666672,
+          "median_error": 0.2
+        },
+        "fumble_recoveries": {
+          "sample_size": 96,
+          "mae": 0.46979166666666666,
+          "rmse": 0.4834769901453429,
+          "bias": 0.3458333333333334,
+          "median_error": 0.45
+        },
+        "def_tds": {
+          "sample_size": 96,
+          "mae": 0.10625000000000001,
+          "rmse": 0.18069310999592653,
+          "bias": 0.048749999999999995,
+          "median_error": 0.08
+        }
+      }
+    },
+    "segments": {
+      "position": {
+        "QB": {
+          "sample_size": 77,
+          "mae": 7.809657894595355,
+          "rmse": 9.33950625723376,
+          "bias": -2.392115249892769,
+          "median_error": -2.0180573051117445
+        },
+        "K": {
+          "sample_size": 66,
+          "mae": 3.0502174900672934,
+          "rmse": 3.7610021974936867,
+          "bias": -1.4470271405132624,
+          "median_error": -1.3773839100947778
+        },
+        "WR": {
+          "sample_size": 317,
+          "mae": 4.677932783648063,
+          "rmse": 6.955210043991249,
+          "bias": -1.2770999690647633,
+          "median_error": 0.5807391397373554
+        },
+        "TE": {
+          "sample_size": 159,
+          "mae": 4.288813397215257,
+          "rmse": 6.42005598693783,
+          "bias": -1.2139499733715204,
+          "median_error": -0.07721186417710557
+        },
+        "RB": {
+          "sample_size": 191,
+          "mae": 4.294624802882936,
+          "rmse": 5.88164762394455,
+          "bias": 1.0161996077235933,
+          "median_error": 1.50277758987899
+        },
+        "DEF": {
+          "sample_size": 96,
+          "mae": 2.609653654013531,
+          "rmse": 3.027594333240229,
+          "bias": 1.8502751169200156,
+          "median_error": 2.293423140689562
+        }
+      },
+      "history_depth": {
+        "1": {
+          "sample_size": 530,
+          "mae": 4.315087899734648,
+          "rmse": 6.504495632341096,
+          "bias": -0.5678077216026717,
+          "median_error": 0.8200994354727218
+        },
+        "2-3": {
+          "sample_size": 376,
+          "mae": 4.657679617230111,
+          "rmse": 6.231842496875599,
+          "bias": -0.5449382253358416,
+          "median_error": 0.8271923666904322
+        }
+      },
+      "game_total": {
+        "40-47": {
+          "sample_size": 654,
+          "mae": 4.405764055317557,
+          "rmse": 6.295737143250399,
+          "bias": -0.42330620304100225,
+          "median_error": 0.8077197165197303
+        },
+        "48-55": {
+          "sample_size": 168,
+          "mae": 4.976236052800855,
+          "rmse": 7.171752723045524,
+          "bias": -0.9230811010479153,
+          "median_error": 0.9136342370383373
+        },
+        "<40": {
+          "sample_size": 84,
+          "mae": 3.820318736781662,
+          "rmse": 5.414604196908961,
+          "bias": -0.879940278700324,
+          "median_error": 0.5404107807032975
+        }
+      },
+      "spread": {
+        "3-6.9": {
+          "sample_size": 438,
+          "mae": 4.545035413100423,
+          "rmse": 6.525686861332348,
+          "bias": -0.5480601885868356,
+          "median_error": 0.9044596159713318
+        },
+        "0-2.9": {
+          "sample_size": 220,
+          "mae": 4.18516575081399,
+          "rmse": 5.877493264507424,
+          "bias": -0.36237334464507365,
+          "median_error": 0.8804226015902762
+        },
+        "7-13.9": {
+          "sample_size": 248,
+          "mae": 4.543637688793639,
+          "rmse": 6.591121647970754,
+          "bias": -0.7502514788417025,
+          "median_error": 0.488468152196329
+        }
+      },
+      "confidence": {
+        ".75-.84": {
+          "sample_size": 777,
+          "mae": 4.726462307844471,
+          "rmse": 6.758816875510895,
+          "bias": -0.7437862806343155,
+          "median_error": 0.6766204528559654,
+          "mean_confidence": 0.8003861003861005
+        },
+        ".65-.74": {
+          "sample_size": 74,
+          "mae": 2.584887084833624,
+          "rmse": 3.183137611821387,
+          "bias": 0.5812407184472108,
+          "median_error": 1.236379652948839,
+          "mean_confidence": 0.7219594594594594
+        },
+        ".95+": {
+          "sample_size": 33,
+          "mae": 2.9847685189737865,
+          "rmse": 3.4293307729156246,
+          "bias": 1.961699713768268,
+          "median_error": 2.31111893104975,
+          "mean_confidence": 0.95
+        },
+        ".85-.94": {
+          "sample_size": 22,
+          "mae": 3.456541106314013,
+          "rmse": 4.228026469997934,
+          "bias": -1.6209467655579863,
+          "median_error": -0.32614110686809106,
+          "mean_confidence": 0.8795454545454546
+        }
+      },
+      "matchup": {
+        ".97-1.02": {
+          "sample_size": 496,
+          "mae": 4.093483059375576,
+          "rmse": 5.763591875613791,
+          "bias": -0.14247103039984854,
+          "median_error": 1.0586686545997437
+        },
+        "<.97": {
+          "sample_size": 247,
+          "mae": 4.803343191491939,
+          "rmse": 6.91936175485877,
+          "bias": -1.4785606349594382,
+          "median_error": -0.0235499017823102
+        },
+        "1.03+": {
+          "sample_size": 163,
+          "mae": 5.039820596252091,
+          "rmse": 7.315581554638663,
+          "bias": -0.42923163964654215,
+          "median_error": 1.1710175830151843
+        }
+      }
+    },
+    "td_calibration": {
+      "sample_size": 906,
+      "brier_score": 0.13051305252481094,
+      "bins": [
+        {
+          "range": "0.0-0.1",
+          "n": 497,
+          "predicted_rate": 0.05557472849130811,
+          "actual_rate": 0.08249496981891348
+        },
+        {
+          "range": "0.1-0.2",
+          "n": 179,
+          "predicted_rate": 0.14331533232506494,
+          "actual_rate": 0.18994413407821228
+        },
+        {
+          "range": "0.2-0.4",
+          "n": 127,
+          "predicted_rate": 0.2765814686437084,
+          "actual_rate": 0.3543307086614173
+        },
+        {
+          "range": "0.4-0.6",
+          "n": 63,
+          "predicted_rate": 0.49022991963345114,
+          "actual_rate": 0.4444444444444444
+        },
+        {
+          "range": "0.6-0.8",
+          "n": 22,
+          "predicted_rate": 0.6827449302341498,
+          "actual_rate": 0.45454545454545453
+        },
+        {
+          "range": "0.8-1.0",
+          "n": 18,
+          "predicted_rate": 0.8734334812377331,
+          "actual_rate": 0.9444444444444444
+        }
+      ]
+    },
+    "interval_coverage": {
+      "sample_size": 906,
+      "p10_p90_coverage": 0.5507726269315674,
+      "p25_p75_coverage": 0.30242825607064017,
+      "p05_p95_coverage": 0.6479028697571744,
+      "nominal": {
+        "p10_p90": 0.8,
+        "p25_p75": 0.5,
+        "p05_p95": 0.9
+      }
+    },
+    "confidence_calibration": {
+      ".75-.84": {
+        "sample_size": 777,
+        "mae": 4.726462307844471,
+        "rmse": 6.758816875510895,
+        "bias": -0.7437862806343155,
+        "median_error": 0.6766204528559654,
+        "mean_confidence": 0.8003861003861005
+      },
+      ".65-.74": {
+        "sample_size": 74,
+        "mae": 2.584887084833624,
+        "rmse": 3.183137611821387,
+        "bias": 0.5812407184472108,
+        "median_error": 1.236379652948839,
+        "mean_confidence": 0.7219594594594594
+      },
+      ".95+": {
+        "sample_size": 33,
+        "mae": 2.9847685189737865,
+        "rmse": 3.4293307729156246,
+        "bias": 1.961699713768268,
+        "median_error": 2.31111893104975,
+        "mean_confidence": 0.95
+      },
+      ".85-.94": {
+        "sample_size": 22,
+        "mae": 3.456541106314013,
+        "rmse": 4.228026469997934,
+        "bias": -1.6209467655579863,
+        "median_error": -0.32614110686809106,
+        "mean_confidence": 0.8795454545454546
+      }
+    },
+    "layer_error_attribution": {
+      "replacement": {
+        "active_samples": 906,
+        "mean_impact": 0.1,
+        "error_impact_correlation": 0
+      },
+      "trench_matchup": {
+        "active_samples": 77,
+        "mean_impact": 0.12562263636363635,
+        "error_impact_correlation": -0.1345372523932412
+      },
+      "game_script": {
+        "active_samples": 906,
+        "mean_impact": 0.0035687902869757176,
+        "error_impact_correlation": -0.011077536360670484
+      },
+      "opportunity": {
+        "active_samples": 744,
+        "mean_impact": 0.05513159543010753,
+        "error_impact_correlation": 0.08410995765255112
+      },
+      "weather": {
+        "active_samples": 452,
+        "mean_impact": -0.04523821460176992,
+        "error_impact_correlation": 0.02958529660099263
+      },
+      "surface": {
+        "active_samples": 134,
+        "mean_impact": 0.02,
+        "error_impact_correlation": 0
+      },
+      "red_zone": {
+        "active_samples": 906,
+        "mean_impact": -0.25,
+        "error_impact_correlation": 0
+      },
+      "explosive": {
+        "active_samples": 211,
+        "mean_impact": 0.35964850215116295,
+        "error_impact_correlation": 0.08875331764330598
+      },
+      "position_matchup": {
+        "active_samples": 730,
+        "mean_impact": -0.006944126027397259,
+        "error_impact_correlation": 0.04889783526713987
+      },
+      "offensive_scheme": {
+        "active_samples": 733,
+        "mean_impact": -0.005063427012278308,
+        "error_impact_correlation": 0.1476775356693694
+      },
+      "defensive_scheme": {
+        "active_samples": 551,
+        "mean_impact": -0.0014493647912885662,
+        "error_impact_correlation": 0.032124060570327816
+      },
+      "route_alignment": {
+        "active_samples": 0,
+        "mean_impact": 0,
+        "error_impact_correlation": 0
+      },
+      "qb_correlation": {
+        "active_samples": 558,
+        "mean_impact": -0.00026077777777777796,
+        "error_impact_correlation": 0.08567760408723488
+      },
+      "defensive_fantasy": {
+        "active_samples": 74,
+        "mean_impact": 0.018378378378378378,
+        "error_impact_correlation": 0.4944358937588186
+      }
+    }
+  },
+  "holdout_uncalibrated": {
+    "sample_size": 57,
+    "fantasy_points": {
+      "sample_size": 57,
+      "mae": 3.5073520448277944,
+      "rmse": 3.9973113019531183,
+      "bias": 1.0479229395713718,
+      "median_error": 2.2019923218347084
+    },
+    "by_position": {
+      "QB": {
+        "sample_size": 2,
+        "mae": 3.122103279592883,
+        "rmse": 4.1723380549374225,
+        "bias": -3.122103279592883,
+        "median_error": -3.122103279592883
+      },
+      "RB": {
+        "sample_size": 6,
+        "mae": 3.9210079567042873,
+        "rmse": 5.086079792186877,
+        "bias": -1.6999737813901765,
+        "median_error": 1.3578192703349279
+      },
+      "WR": {
+        "sample_size": 11,
+        "mae": 3.6260227032518215,
+        "rmse": 4.355615244763694,
+        "bias": -1.8658746530664851,
+        "median_error": 0.4355447715066434
+      },
+      "TE": {
+        "sample_size": 4,
+        "mae": 3.565312438914221,
+        "rmse": 3.804763884485155,
+        "bias": -2.481548467426898,
+        "median_error": -3.1871206012154185
+      },
+      "K": {
+        "sample_size": 2,
+        "mae": 2.2254210457629653,
+        "rmse": 2.7293506004655406,
+        "bias": -1.5801442558630137,
+        "median_error": -1.5801442558630137
+      },
+      "DEF": {
+        "sample_size": 32,
+        "mae": 3.485952208525623,
+        "rmse": 3.704977488599809,
+        "bias": 3.4308362615081243,
+        "median_error": 3.5241853471567133
+      }
+    },
+    "counting_stats": {
+      "QB": {
+        "pass_attempts": {
+          "sample_size": 2,
+          "mae": 4.617395833333335,
+          "rmse": 6.025886836555881,
+          "bias": -4.617395833333335,
+          "median_error": -4.617395833333335
+        },
+        "completions": {
+          "sample_size": 2,
+          "mae": 4.349997174996084,
+          "rmse": 5.703929729600268,
+          "bias": -3.6894903357704942,
+          "median_error": -3.6894903357704942
+        },
+        "passing_yards": {
+          "sample_size": 2,
+          "mae": 86.41642789939634,
+          "rmse": 94.4746065633706,
+          "bias": -86.41642789939634,
+          "median_error": -86.41642789939634
+        },
+        "passing_tds": {
+          "sample_size": 2,
+          "mae": 0.9187219212473571,
+          "rmse": 1.1816035291396316,
+          "bias": -0.74305917092436,
+          "median_error": -0.74305917092436
+        },
+        "interceptions": {
+          "sample_size": 2,
+          "mae": 0.9826747428255422,
+          "rmse": 0.9906157236779463,
+          "bias": -0.9826747428255422,
+          "median_error": -0.9826747428255422
+        },
+        "rushing_yards": {
+          "sample_size": 2,
+          "mae": 14.260958225902632,
+          "rmse": 16.318636743524152,
+          "bias": 14.260958225902632,
+          "median_error": 14.260958225902632
+        },
+        "rushing_tds": {
+          "sample_size": 2,
+          "mae": 0.0,
+          "rmse": 0.0,
+          "bias": 0.0,
+          "median_error": 0.0
+        }
+      },
+      "RB": {
+        "carries": {
+          "sample_size": 6,
+          "mae": 1.729764040352708,
+          "rmse": 2.646951604436857,
+          "bias": -1.4203632922016582,
+          "median_error": -0.6419497123208979
+        },
+        "rushing_yards": {
+          "sample_size": 6,
+          "mae": 10.722601529512772,
+          "rmse": 14.793883509471305,
+          "bias": -7.867294239788344,
+          "median_error": -2.983756179878484
+        },
+        "targets": {
+          "sample_size": 6,
+          "mae": 1.5146957593942751,
+          "rmse": 1.9532110052166396,
+          "bias": -0.2573645988611412,
+          "median_error": 0.8265786942625848
+        },
+        "receptions": {
+          "sample_size": 6,
+          "mae": 0.893599766536097,
+          "rmse": 1.4329425376276157,
+          "bias": -0.23877535368917532,
+          "median_error": 0.39402548306313834
+        },
+        "receiving_yards": {
+          "sample_size": 6,
+          "mae": 8.86838694709146,
+          "rmse": 13.440154990487285,
+          "bias": -1.1123615727053238,
+          "median_error": 1.5618848914661483
+        },
+        "rushing_tds": {
+          "sample_size": 6,
+          "mae": 0.32473137367303223,
+          "rmse": 0.4618427783399891,
+          "bias": -0.12168180384173576,
+          "median_error": 0.04536382794396014
+        },
+        "receiving_tds": {
+          "sample_size": 6,
+          "mae": 0.023547671711958016,
+          "rmse": 0.02795684063488533,
+          "bias": 0.023547671711958016,
+          "median_error": 0.019946251961637712
+        }
+      },
+      "WR": {
+        "targets": {
+          "sample_size": 11,
+          "mae": 1.3391521114612308,
+          "rmse": 1.6554030185812822,
+          "bias": -0.07620049542359354,
+          "median_error": -0.1559067990039218
+        },
+        "receptions": {
+          "sample_size": 11,
+          "mae": 0.9420891048518553,
+          "rmse": 1.1781980730834836,
+          "bias": -0.35390921972603967,
+          "median_error": -0.05865195529737188
+        },
+        "receiving_yards": {
+          "sample_size": 11,
+          "mae": 25.75410766458989,
+          "rmse": 34.96399789410235,
+          "bias": -17.34005533550949,
+          "median_error": 2.2190272372852453
+        },
+        "receiving_tds": {
+          "sample_size": 11,
+          "mae": 0.17766929373895632,
+          "rmse": 0.2720009257226807,
+          "bias": 0.034576701112337634,
+          "median_error": 0.07099691351786572
+        }
+      },
+      "TE": {
+        "targets": {
+          "sample_size": 4,
+          "mae": 0.9168932027975889,
+          "rmse": 1.2741662641623008,
+          "bias": -0.2392565854317918,
+          "median_error": -0.011804207707877268
+        },
+        "receptions": {
+          "sample_size": 4,
+          "mae": 0.7952560477166261,
+          "rmse": 0.8260493008157234,
+          "bias": 0.30475206292911194,
+          "median_error": 0.602636522587237
+        },
+        "receiving_yards": {
+          "sample_size": 4,
+          "mae": 10.126523900332536,
+          "rmse": 11.126781071217074,
+          "bias": 10.126523900332536,
+          "median_error": 9.215794220452636
+        },
+        "receiving_tds": {
+          "sample_size": 4,
+          "mae": 0.6532433532920298,
+          "rmse": 0.7430955055589241,
+          "bias": -0.6323236429672145,
+          "median_error": -0.8331139644197879
+        }
+      },
+      "K": {
+        "field_goal_attempts": {
+          "sample_size": 2,
+          "mae": 1.0145833333333334,
+          "rmse": 1.016216446485127,
+          "bias": -1.0145833333333334,
+          "median_error": -1.0145833333333334
+        },
+        "field_goals": {
+          "sample_size": 2,
+          "mae": 0.6525416666666666,
+          "rmse": 0.7929292172224542,
+          "bias": -0.6525416666666666,
+          "median_error": -0.6525416666666666
+        },
+        "extra_point_attempts": {
+          "sample_size": 2,
+          "mae": 0.8519132653061225,
+          "rmse": 1.0054033673070204,
+          "bias": 0.5339285714285715,
+          "median_error": 0.5339285714285715
+        },
+        "extra_points": {
+          "sample_size": 2,
+          "mae": 0.8607984693877551,
+          "rmse": 0.9417091691371793,
+          "bias": 0.38189285714285703,
+          "median_error": 0.38189285714285703
+        }
+      },
+      "DEF": {
+        "sacks": {
+          "sample_size": 32,
+          "mae": 2.1990625,
+          "rmse": 2.4866656194144356,
+          "bias": 2.0598958333333335,
+          "median_error": 2.1900000000000004
+        },
+        "interceptions": {
+          "sample_size": 32,
+          "mae": 0.24895833333333334,
+          "rmse": 0.31628266190580573,
+          "bias": 0.1260416666666667,
+          "median_error": 0.2
+        },
+        "fumble_recoveries": {
+          "sample_size": 32,
+          "mae": 0.45,
+          "rmse": 0.45,
+          "bias": 0.45,
+          "median_error": 0.45
+        },
+        "def_tds": {
+          "sample_size": 32,
+          "mae": 0.08,
+          "rmse": 0.08,
+          "bias": 0.08,
+          "median_error": 0.08
+        }
+      }
+    },
+    "segments": {
+      "position": {
+        "QB": {
+          "sample_size": 2,
+          "mae": 3.122103279592883,
+          "rmse": 4.1723380549374225,
+          "bias": -3.122103279592883,
+          "median_error": -3.122103279592883
+        },
+        "K": {
+          "sample_size": 2,
+          "mae": 2.2254210457629653,
+          "rmse": 2.7293506004655406,
+          "bias": -1.5801442558630137,
+          "median_error": -1.5801442558630137
+        },
+        "RB": {
+          "sample_size": 6,
+          "mae": 3.9210079567042873,
+          "rmse": 5.086079792186877,
+          "bias": -1.6999737813901765,
+          "median_error": 1.3578192703349279
+        },
+        "WR": {
+          "sample_size": 11,
+          "mae": 3.6260227032518215,
+          "rmse": 4.355615244763694,
+          "bias": -1.8658746530664851,
+          "median_error": 0.4355447715066434
+        },
+        "TE": {
+          "sample_size": 4,
+          "mae": 3.565312438914221,
+          "rmse": 3.804763884485155,
+          "bias": -2.481548467426898,
+          "median_error": -3.1871206012154185
+        },
+        "DEF": {
+          "sample_size": 32,
+          "mae": 3.485952208525623,
+          "rmse": 3.704977488599809,
+          "bias": 3.4308362615081243,
+          "median_error": 3.5241853471567133
+        }
+      },
+      "history_depth": {
+        "2-3": {
+          "sample_size": 54,
+          "mae": 3.5332223160304466,
+          "rmse": 3.97159442579672,
+          "bias": 1.2182558644635666,
+          "median_error": 2.2634231406895613
+        },
+        "1": {
+          "sample_size": 3,
+          "mae": 3.0416871631800557,
+          "rmse": 4.434786821862814,
+          "bias": -2.018069708488133,
+          "median_error": 0.4355447715066434
+        }
+      },
+      "game_total": {
+        "<40": {
+          "sample_size": 31,
+          "mae": 3.443430799737448,
+          "rmse": 4.213409730230568,
+          "bias": -1.0787452970243614,
+          "median_error": 0.6452767898999516
+        },
+        "40-47": {
+          "sample_size": 16,
+          "mae": 3.2431515435634477,
+          "rmse": 3.342510661300937,
+          "bias": 3.2431515435634477,
+          "median_error": 3.395211513626594
+        },
+        "48-55": {
+          "sample_size": 10,
+          "mae": 4.128228706630823,
+          "rmse": 4.26238028823971,
+          "bias": 4.128228706630823,
+          "median_error": 3.9748712234556196
+        }
+      },
+      "spread": {
+        "0-2.9": {
+          "sample_size": 33,
+          "mae": 3.3625257751724518,
+          "rmse": 4.07254795777279,
+          "bias": -0.8855790429977327,
+          "median_error": 0.8508376903300134
+        },
+        "3-6.9": {
+          "sample_size": 16,
+          "mae": 3.60460241843455,
+          "rmse": 3.7686157738725665,
+          "bias": 3.60460241843455,
+          "median_error": 3.5639735415182274
+        },
+        "7-13.9": {
+          "sample_size": 8,
+          "mae": 3.9102596599425725,
+          "rmse": 4.126266191667807,
+          "bias": 3.9102596599425725,
+          "median_error": 3.763862639019753
+        }
+      },
+      "confidence": {
+        ".85-.94": {
+          "sample_size": 18,
+          "mae": 3.854979316812284,
+          "rmse": 4.564361002487322,
+          "bias": -2.031205161045439,
+          "median_error": -1.6211977445098351,
+          "mean_confidence": 0.8777777777777778
+        },
+        ".75-.84": {
+          "sample_size": 13,
+          "mae": 2.798950774135925,
+          "rmse": 3.408359532774813,
+          "bias": 0.3010716900115326,
+          "median_error": 1.0998814105312402,
+          "mean_confidence": 0.8211538461538462
+        },
+        ".95+": {
+          "sample_size": 14,
+          "mae": 3.3221981745935105,
+          "rmse": 3.5893536657282428,
+          "bias": 3.1962188671249416,
+          "median_error": 3.3858280966928556,
+          "mean_confidence": 0.95
+        },
+        ".65-.74": {
+          "sample_size": 12,
+          "mae": 3.969358695373916,
+          "rmse": 4.126994404352267,
+          "bias": 3.969358695373916,
+          "median_error": 3.759324032744365,
+          "mean_confidence": 0.7034722222222222
+        }
+      },
+      "matchup": {
+        ".97-1.02": {
+          "sample_size": 57,
+          "mae": 3.5073520448277944,
+          "rmse": 3.9973113019531183,
+          "bias": 1.0479229395713718,
+          "median_error": 2.2019923218347084
+        }
+      }
+    },
+    "td_calibration": {
+      "sample_size": 57,
+      "brier_score": 0.08374834181234853,
+      "bins": [
+        {
+          "range": "0.0-0.1",
+          "n": 45,
+          "predicted_rate": 0.0686479361410288,
+          "actual_rate": 0.044444444444444446
+        },
+        {
+          "range": "0.1-0.2",
+          "n": 7,
+          "predicted_rate": 0.15385556290955743,
+          "actual_rate": 0.42857142857142855
+        },
+        {
+          "range": "0.2-0.4",
+          "n": 1,
+          "predicted_rate": 0.24722406163323374,
+          "actual_rate": 0.0
+        },
+        {
+          "range": "0.4-0.6",
+          "n": 2,
+          "predicted_rate": 0.43802589961127336,
+          "actual_rate": 0.5
+        },
+        {
+          "range": "0.6-0.8",
+          "n": 2,
+          "predicted_rate": 0.7145365834801767,
+          "actual_rate": 1.0
+        }
+      ]
+    },
+    "interval_coverage": {
+      "sample_size": 57,
+      "p10_p90_coverage": 0.3508771929824561,
+      "p25_p75_coverage": 0.14035087719298245,
+      "p05_p95_coverage": 0.42105263157894735,
+      "nominal": {
+        "p10_p90": 0.8,
+        "p25_p75": 0.5,
+        "p05_p95": 0.9
+      }
+    },
+    "confidence_calibration": {
+      ".85-.94": {
+        "sample_size": 18,
+        "mae": 3.854979316812284,
+        "rmse": 4.564361002487322,
+        "bias": -2.031205161045439,
+        "median_error": -1.6211977445098351,
+        "mean_confidence": 0.8777777777777778
+      },
+      ".75-.84": {
+        "sample_size": 13,
+        "mae": 2.798950774135925,
+        "rmse": 3.408359532774813,
+        "bias": 0.3010716900115326,
+        "median_error": 1.0998814105312402,
+        "mean_confidence": 0.8211538461538462
+      },
+      ".95+": {
+        "sample_size": 14,
+        "mae": 3.3221981745935105,
+        "rmse": 3.5893536657282428,
+        "bias": 3.1962188671249416,
+        "median_error": 3.3858280966928556,
+        "mean_confidence": 0.95
+      },
+      ".65-.74": {
+        "sample_size": 12,
+        "mae": 3.969358695373916,
+        "rmse": 4.126994404352267,
+        "bias": 3.969358695373916,
+        "median_error": 3.759324032744365,
+        "mean_confidence": 0.7034722222222222
+      }
+    },
+    "layer_error_attribution": {
+      "replacement": {
+        "active_samples": 57,
+        "mean_impact": 0.1,
+        "error_impact_correlation": 0
+      },
+      "trench_matchup": {
+        "active_samples": 2,
+        "mean_impact": 0.124808,
+        "error_impact_correlation": 0
+      },
+      "game_script": {
+        "active_samples": 57,
+        "mean_impact": -0.009893017543859649,
+        "error_impact_correlation": 0.5631161174348017
+      },
+      "opportunity": {
+        "active_samples": 23,
+        "mean_impact": 0.02545317391304348,
+        "error_impact_correlation": -0.007267551041400346
+      },
+      "weather": {
+        "active_samples": 19,
+        "mean_impact": -0.0629488947368421,
+        "error_impact_correlation": -0.050720032896092386
+      },
+      "surface": {
+        "active_samples": 0,
+        "mean_impact": 0,
+        "error_impact_correlation": 0
+      },
+      "red_zone": {
+        "active_samples": 57,
+        "mean_impact": -0.25,
+        "error_impact_correlation": 0
+      },
+      "explosive": {
+        "active_samples": 22,
+        "mean_impact": 0.12378210656700905,
+        "error_impact_correlation": -0.3514528178716336
+      },
+      "position_matchup": {
+        "active_samples": 23,
+        "mean_impact": -0.004198913043478261,
+        "error_impact_correlation": 0.06454238093624882
+      },
+      "offensive_scheme": {
+        "active_samples": 23,
+        "mean_impact": 0.0003395217391304341,
+        "error_impact_correlation": -0.19090667074753243
+      },
+      "defensive_scheme": {
+        "active_samples": 23,
+        "mean_impact": -0.0018782608695652172,
+        "error_impact_correlation": 0.082284332720773
+      },
+      "qb_correlation": {
+        "active_samples": 21,
+        "mean_impact": -0.016798238095238095,
+        "error_impact_correlation": 0.1382729350271899
+      },
+      "route_alignment": {
+        "active_samples": 0,
+        "mean_impact": 0,
+        "error_impact_correlation": 0
+      },
+      "defensive_fantasy": {
+        "active_samples": 27,
+        "mean_impact": 0.012592592592592593,
+        "error_impact_correlation": 0.7356097885306674
+      }
+    }
+  },
+  "holdout_calibrated": {
+    "sample_size": 57,
+    "fantasy_points": {
+      "sample_size": 57,
+      "mae": 3.160283353267886,
+      "rmse": 3.6097714802219376,
+      "bias": 0.8629198667976535,
+      "median_error": 2.444981970362146
+    },
+    "by_position": {
+      "QB": {
+        "sample_size": 2,
+        "mae": 2.6934801208153933,
+        "rmse": 3.0045813722385537,
+        "bias": -1.3314180640111521,
+        "median_error": -1.3314180640111521
+      },
+      "RB": {
+        "sample_size": 6,
+        "mae": 4.404622568618442,
+        "rmse": 5.748758232604503,
+        "bias": -2.400256119591951,
+        "median_error": -0.2336620777734606
+      },
+      "WR": {
+        "sample_size": 11,
+        "mae": 4.282292317798218,
+        "rmse": 4.520913840905412,
+        "bias": -0.4103624854960794,
+        "median_error": 2.839722020796019
+      },
+      "TE": {
+        "sample_size": 4,
+        "mae": 3.7813016223126805,
+        "rmse": 3.8736268506438516,
+        "bias": -1.75074975734428,
+        "median_error": -3.0471502509962445
+      },
+      "K": {
+        "sample_size": 2,
+        "mae": 2.3077947320340755,
+        "rmse": 2.3148402611027263,
+        "bias": 0.1804685823568981,
+        "median_error": 0.1804685823568981
+      },
+      "DEF": {
+        "sample_size": 32,
+        "mae": 2.5461076260571494,
+        "rmse": 2.6857792159234477,
+        "bias": 2.418964201817514,
+        "median_error": 2.5499335617715264
+      }
+    },
+    "counting_stats": {
+      "QB": {
+        "pass_attempts": {
+          "sample_size": 2,
+          "mae": 4.617395833333335,
+          "rmse": 6.025886836555881,
+          "bias": -4.617395833333335,
+          "median_error": -4.617395833333335
+        },
+        "completions": {
+          "sample_size": 2,
+          "mae": 4.349997174996084,
+          "rmse": 5.703929729600268,
+          "bias": -3.6894903357704942,
+          "median_error": -3.6894903357704942
+        },
+        "passing_yards": {
+          "sample_size": 2,
+          "mae": 86.41642789939634,
+          "rmse": 94.4746065633706,
+          "bias": -86.41642789939634,
+          "median_error": -86.41642789939634
+        },
+        "passing_tds": {
+          "sample_size": 2,
+          "mae": 0.9187219212473571,
+          "rmse": 1.1816035291396316,
+          "bias": -0.74305917092436,
+          "median_error": -0.74305917092436
+        },
+        "interceptions": {
+          "sample_size": 2,
+          "mae": 0.9826747428255422,
+          "rmse": 0.9906157236779463,
+          "bias": -0.9826747428255422,
+          "median_error": -0.9826747428255422
+        },
+        "rushing_yards": {
+          "sample_size": 2,
+          "mae": 14.260958225902632,
+          "rmse": 16.318636743524152,
+          "bias": 14.260958225902632,
+          "median_error": 14.260958225902632
+        },
+        "rushing_tds": {
+          "sample_size": 2,
+          "mae": 0.0,
+          "rmse": 0.0,
+          "bias": 0.0,
+          "median_error": 0.0
+        }
+      },
+      "RB": {
+        "carries": {
+          "sample_size": 6,
+          "mae": 1.729764040352708,
+          "rmse": 2.646951604436857,
+          "bias": -1.4203632922016582,
+          "median_error": -0.6419497123208979
+        },
+        "rushing_yards": {
+          "sample_size": 6,
+          "mae": 10.722601529512772,
+          "rmse": 14.793883509471305,
+          "bias": -7.867294239788344,
+          "median_error": -2.983756179878484
+        },
+        "targets": {
+          "sample_size": 6,
+          "mae": 1.5146957593942751,
+          "rmse": 1.9532110052166396,
+          "bias": -0.2573645988611412,
+          "median_error": 0.8265786942625848
+        },
+        "receptions": {
+          "sample_size": 6,
+          "mae": 0.893599766536097,
+          "rmse": 1.4329425376276157,
+          "bias": -0.23877535368917532,
+          "median_error": 0.39402548306313834
+        },
+        "receiving_yards": {
+          "sample_size": 6,
+          "mae": 8.86838694709146,
+          "rmse": 13.440154990487285,
+          "bias": -1.1123615727053238,
+          "median_error": 1.5618848914661483
+        },
+        "rushing_tds": {
+          "sample_size": 6,
+          "mae": 0.32473137367303223,
+          "rmse": 0.4618427783399891,
+          "bias": -0.12168180384173576,
+          "median_error": 0.04536382794396014
+        },
+        "receiving_tds": {
+          "sample_size": 6,
+          "mae": 0.023547671711958016,
+          "rmse": 0.02795684063488533,
+          "bias": 0.023547671711958016,
+          "median_error": 0.019946251961637712
+        }
+      },
+      "WR": {
+        "targets": {
+          "sample_size": 11,
+          "mae": 1.3391521114612308,
+          "rmse": 1.6554030185812822,
+          "bias": -0.07620049542359354,
+          "median_error": -0.1559067990039218
+        },
+        "receptions": {
+          "sample_size": 11,
+          "mae": 0.9420891048518553,
+          "rmse": 1.1781980730834836,
+          "bias": -0.35390921972603967,
+          "median_error": -0.05865195529737188
+        },
+        "receiving_yards": {
+          "sample_size": 11,
+          "mae": 25.75410766458989,
+          "rmse": 34.96399789410235,
+          "bias": -17.34005533550949,
+          "median_error": 2.2190272372852453
+        },
+        "receiving_tds": {
+          "sample_size": 11,
+          "mae": 0.17766929373895632,
+          "rmse": 0.2720009257226807,
+          "bias": 0.034576701112337634,
+          "median_error": 0.07099691351786572
+        }
+      },
+      "TE": {
+        "targets": {
+          "sample_size": 4,
+          "mae": 0.9168932027975889,
+          "rmse": 1.2741662641623008,
+          "bias": -0.2392565854317918,
+          "median_error": -0.011804207707877268
+        },
+        "receptions": {
+          "sample_size": 4,
+          "mae": 0.7952560477166261,
+          "rmse": 0.8260493008157234,
+          "bias": 0.30475206292911194,
+          "median_error": 0.602636522587237
+        },
+        "receiving_yards": {
+          "sample_size": 4,
+          "mae": 10.126523900332536,
+          "rmse": 11.126781071217074,
+          "bias": 10.126523900332536,
+          "median_error": 9.215794220452636
+        },
+        "receiving_tds": {
+          "sample_size": 4,
+          "mae": 0.6532433532920298,
+          "rmse": 0.7430955055589241,
+          "bias": -0.6323236429672145,
+          "median_error": -0.8331139644197879
+        }
+      },
+      "K": {
+        "field_goal_attempts": {
+          "sample_size": 2,
+          "mae": 1.0145833333333334,
+          "rmse": 1.016216446485127,
+          "bias": -1.0145833333333334,
+          "median_error": -1.0145833333333334
+        },
+        "field_goals": {
+          "sample_size": 2,
+          "mae": 0.6525416666666666,
+          "rmse": 0.7929292172224542,
+          "bias": -0.6525416666666666,
+          "median_error": -0.6525416666666666
+        },
+        "extra_point_attempts": {
+          "sample_size": 2,
+          "mae": 0.8519132653061225,
+          "rmse": 1.0054033673070204,
+          "bias": 0.5339285714285715,
+          "median_error": 0.5339285714285715
+        },
+        "extra_points": {
+          "sample_size": 2,
+          "mae": 0.8607984693877551,
+          "rmse": 0.9417091691371793,
+          "bias": 0.38189285714285703,
+          "median_error": 0.38189285714285703
+        }
+      },
+      "DEF": {
+        "sacks": {
+          "sample_size": 32,
+          "mae": 2.1990625,
+          "rmse": 2.4866656194144356,
+          "bias": 2.0598958333333335,
+          "median_error": 2.1900000000000004
+        },
+        "interceptions": {
+          "sample_size": 32,
+          "mae": 0.24895833333333334,
+          "rmse": 0.31628266190580573,
+          "bias": 0.1260416666666667,
+          "median_error": 0.2
+        },
+        "fumble_recoveries": {
+          "sample_size": 32,
+          "mae": 0.45,
+          "rmse": 0.45,
+          "bias": 0.45,
+          "median_error": 0.45
+        },
+        "def_tds": {
+          "sample_size": 32,
+          "mae": 0.08,
+          "rmse": 0.08,
+          "bias": 0.08,
+          "median_error": 0.08
+        }
+      }
+    },
+    "segments": {
+      "position": {
+        "QB": {
+          "sample_size": 2,
+          "mae": 2.6934801208153933,
+          "rmse": 3.0045813722385537,
+          "bias": -1.3314180640111521,
+          "median_error": -1.3314180640111521
+        },
+        "K": {
+          "sample_size": 2,
+          "mae": 2.3077947320340755,
+          "rmse": 2.3148402611027263,
+          "bias": 0.1804685823568981,
+          "median_error": 0.1804685823568981
+        },
+        "RB": {
+          "sample_size": 6,
+          "mae": 4.404622568618442,
+          "rmse": 5.748758232604503,
+          "bias": -2.400256119591951,
+          "median_error": -0.2336620777734606
+        },
+        "WR": {
+          "sample_size": 11,
+          "mae": 4.282292317798218,
+          "rmse": 4.520913840905412,
+          "bias": -0.4103624854960794,
+          "median_error": 2.839722020796019
+        },
+        "TE": {
+          "sample_size": 4,
+          "mae": 3.7813016223126805,
+          "rmse": 3.8736268506438516,
+          "bias": -1.75074975734428,
+          "median_error": -3.0471502509962445
+        },
+        "DEF": {
+          "sample_size": 32,
+          "mae": 2.5461076260571494,
+          "rmse": 2.6857792159234477,
+          "bias": 2.418964201817514,
+          "median_error": 2.5499335617715264
+        }
+      },
+      "history_depth": {
+        "2-3": {
+          "sample_size": 54,
+          "mae": 3.1217364335712965,
+          "rmse": 3.563711823708098,
+          "bias": 0.9444460566627336,
+          "median_error": 2.448397307710515
+        },
+        "1": {
+          "sample_size": 3,
+          "mae": 3.8541279078064954,
+          "rmse": 4.356351377607849,
+          "bias": -0.6045515507737885,
+          "median_error": 2.034642514753041
+        }
+      },
+      "game_total": {
+        "<40": {
+          "sample_size": 31,
+          "mae": 3.6373275359398582,
+          "rmse": 4.2316597843014145,
+          "bias": -0.586856939182827,
+          "median_error": 1.3327623251288685
+        },
+        "40-47": {
+          "sample_size": 16,
+          "mae": 2.3532098992562407,
+          "rmse": 2.4203772778824932,
+          "bias": 2.3532098992562407,
+          "median_error": 2.459651878300443
+        },
+        "48-55": {
+          "sample_size": 10,
+          "mae": 2.9727639134034036,
+          "rmse": 3.0641272629938365,
+          "bias": 2.9727639134034036,
+          "median_error": 2.865413675180761
+        }
+      },
+      "spread": {
+        "0-2.9": {
+          "sample_size": 33,
+          "mae": 3.5113654031466752,
+          "rmse": 4.097832566790933,
+          "bias": -0.4568078916655445,
+          "median_error": 1.3620620568042412
+        },
+        "3-6.9": {
+          "sample_size": 16,
+          "mae": 2.606225511666012,
+          "rmse": 2.7175304015127884,
+          "bias": 2.606225511666012,
+          "median_error": 2.5777852978245863
+        },
+        "7-13.9": {
+          "sample_size": 8,
+          "mae": 2.820185580721628,
+          "rmse": 2.967163346887089,
+          "bias": 2.820185580721628,
+          "median_error": 2.717707666075654
+        }
+      },
+      "confidence": {
+        ".85-.94": {
+          "sample_size": 18,
+          "mae": 3.884131272900441,
+          "rmse": 4.650739453315898,
+          "bias": -1.910463228586784,
+          "median_error": -2.3539379834773744,
+          "mean_confidence": 0.8777777777777778
+        },
+        ".75-.84": {
+          "sample_size": 13,
+          "mae": 3.1868878016631084,
+          "rmse": 3.4120811292334543,
+          "bias": 1.4500856380965792,
+          "median_error": 2.632398444046123,
+          "mean_confidence": 0.8211538461538462
+        },
+        ".95+": {
+          "sample_size": 14,
+          "mae": 2.460970566868452,
+          "rmse": 2.6225743000100694,
+          "bias": 2.170357025749287,
+          "median_error": 2.4530834864468263,
+          "mean_confidence": 0.95
+        },
+        ".65-.74": {
+          "sample_size": 12,
+          "mae": 2.8615549055235685,
+          "rmse": 2.968816416389376,
+          "bias": 2.8615549055235685,
+          "median_error": 2.7145306416828827,
+          "mean_confidence": 0.7034722222222222
+        }
+      },
+      "matchup": {
+        ".97-1.02": {
+          "sample_size": 57,
+          "mae": 3.160283353267886,
+          "rmse": 3.6097714802219376,
+          "bias": 0.8629198667976535,
+          "median_error": 2.444981970362146
+        }
+      }
+    },
+    "td_calibration": {
+      "sample_size": 57,
+      "brier_score": 0.08374834181234853,
+      "bins": [
+        {
+          "range": "0.0-0.1",
+          "n": 45,
+          "predicted_rate": 0.0686479361410288,
+          "actual_rate": 0.044444444444444446
+        },
+        {
+          "range": "0.1-0.2",
+          "n": 7,
+          "predicted_rate": 0.15385556290955743,
+          "actual_rate": 0.42857142857142855
+        },
+        {
+          "range": "0.2-0.4",
+          "n": 1,
+          "predicted_rate": 0.24722406163323374,
+          "actual_rate": 0.0
+        },
+        {
+          "range": "0.4-0.6",
+          "n": 2,
+          "predicted_rate": 0.43802589961127336,
+          "actual_rate": 0.5
+        },
+        {
+          "range": "0.6-0.8",
+          "n": 2,
+          "predicted_rate": 0.7145365834801767,
+          "actual_rate": 1.0
+        }
+      ]
+    },
+    "interval_coverage": {
+      "sample_size": 57,
+      "p10_p90_coverage": 0.07017543859649122,
+      "p25_p75_coverage": 0.05263157894736842,
+      "p05_p95_coverage": 0.10526315789473684,
+      "nominal": {
+        "p10_p90": 0.8,
+        "p25_p75": 0.5,
+        "p05_p95": 0.9
+      }
+    },
+    "confidence_calibration": {
+      ".85-.94": {
+        "sample_size": 18,
+        "mae": 3.884131272900441,
+        "rmse": 4.650739453315898,
+        "bias": -1.910463228586784,
+        "median_error": -2.3539379834773744,
+        "mean_confidence": 0.8777777777777778
+      },
+      ".75-.84": {
+        "sample_size": 13,
+        "mae": 3.1868878016631084,
+        "rmse": 3.4120811292334543,
+        "bias": 1.4500856380965792,
+        "median_error": 2.632398444046123,
+        "mean_confidence": 0.8211538461538462
+      },
+      ".95+": {
+        "sample_size": 14,
+        "mae": 2.460970566868452,
+        "rmse": 2.6225743000100694,
+        "bias": 2.170357025749287,
+        "median_error": 2.4530834864468263,
+        "mean_confidence": 0.95
+      },
+      ".65-.74": {
+        "sample_size": 12,
+        "mae": 2.8615549055235685,
+        "rmse": 2.968816416389376,
+        "bias": 2.8615549055235685,
+        "median_error": 2.7145306416828827,
+        "mean_confidence": 0.7034722222222222
+      }
+    },
+    "layer_error_attribution": {
+      "replacement": {
+        "active_samples": 57,
+        "mean_impact": 0.1,
+        "error_impact_correlation": 0
+      },
+      "trench_matchup": {
+        "active_samples": 2,
+        "mean_impact": 0.124808,
+        "error_impact_correlation": 0
+      },
+      "game_script": {
+        "active_samples": 57,
+        "mean_impact": -0.009893017543859649,
+        "error_impact_correlation": 0.42322541710136313
+      },
+      "opportunity": {
+        "active_samples": 23,
+        "mean_impact": 0.02545317391304348,
+        "error_impact_correlation": 0.08997051588659696
+      },
+      "weather": {
+        "active_samples": 19,
+        "mean_impact": -0.0629488947368421,
+        "error_impact_correlation": -0.077896897070425
+      },
+      "surface": {
+        "active_samples": 0,
+        "mean_impact": 0,
+        "error_impact_correlation": 0
+      },
+      "red_zone": {
+        "active_samples": 57,
+        "mean_impact": -0.25,
+        "error_impact_correlation": 0
+      },
+      "explosive": {
+        "active_samples": 22,
+        "mean_impact": 0.12378210656700905,
+        "error_impact_correlation": -0.32793382154377304
+      },
+      "position_matchup": {
+        "active_samples": 23,
+        "mean_impact": -0.004198913043478261,
+        "error_impact_correlation": 0.009751418311213029
+      },
+      "offensive_scheme": {
+        "active_samples": 23,
+        "mean_impact": 0.0003395217391304341,
+        "error_impact_correlation": -0.21230199667426686
+      },
+      "defensive_scheme": {
+        "active_samples": 23,
+        "mean_impact": -0.0018782608695652172,
+        "error_impact_correlation": -0.041558453620985265
+      },
+      "qb_correlation": {
+        "active_samples": 21,
+        "mean_impact": -0.016798238095238095,
+        "error_impact_correlation": -0.06689405271621911
+      },
+      "route_alignment": {
+        "active_samples": 0,
+        "mean_impact": 0,
+        "error_impact_correlation": 0
+      },
+      "defensive_fantasy": {
+        "active_samples": 27,
+        "mean_impact": 0.012592592592592593,
+        "error_impact_correlation": 0.5967125349759016
+      }
+    }
+  },
+  "calibration_profile": {
+    "method": "walk_forward_affine",
+    "trained_through_week": 3,
+    "by_position": {
+      "QB": {
+        "a": 6.0860542317038675,
+        "b": 0.7,
+        "sample_size": 75,
+        "status": "fitted"
+      },
+      "RB": {
+        "a": 1.2647255273811728,
+        "b": 0.7,
+        "sample_size": 185,
+        "status": "fitted"
+      },
+      "WR": {
+        "a": 2.8948406807413694,
+        "b": 0.7,
+        "sample_size": 306,
+        "status": "fitted"
+      },
+      "TE": {
+        "a": 2.5438341698545486,
+        "b": 0.7,
+        "sample_size": 155,
+        "status": "fitted"
+      },
+      "K": {
+        "a": 3.2365695614610077,
+        "b": 0.7,
+        "sample_size": 64,
+        "status": "fitted"
+      },
+      "DEF": {
+        "a": 0.08300381876182739,
+        "b": 0.7,
+        "sample_size": 64,
+        "status": "fitted"
+      }
+    },
+    "global": {
+      "a": 2.4592903497528766,
+      "b": 0.7176314932737095,
+      "sample_size": 849,
+      "status": "fitted"
+    }
+  },
+  "limitations": [
+    "Only 2026 weeks 1-4 are present in the bundled player/team data.",
+    "Therefore this is a complete calibration run over the available dataset, not a multi-season final calibration.",
+    "Week 4 was held out from fitting and used only as an out-of-sample validation week.",
+    "No future final score/total is used as the pregame total; only total_line is used."
+  ]
+}

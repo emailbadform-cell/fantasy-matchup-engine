@@ -1,0 +1,48 @@
+{
+  "method": "walk_forward_affine",
+  "trained_through_week": 3,
+  "by_position": {
+    "QB": {
+      "a": 6.0860542317038675,
+      "b": 0.7,
+      "sample_size": 75,
+      "status": "fitted"
+    },
+    "RB": {
+      "a": 1.2647255273811728,
+      "b": 0.7,
+      "sample_size": 185,
+      "status": "fitted"
+    },
+    "WR": {
+      "a": 2.8948406807413694,
+      "b": 0.7,
+      "sample_size": 306,
+      "status": "fitted"
+    },
+    "TE": {
+      "a": 2.5438341698545486,
+      "b": 0.7,
+      "sample_size": 155,
+      "status": "fitted"
+    },
+    "K": {
+      "a": 3.2365695614610077,
+      "b": 0.7,
+      "sample_size": 64,
+      "status": "fitted"
+    },
+    "DEF": {
+      "a": 0.08300381876182739,
+      "b": 0.7,
+      "sample_size": 64,
+      "status": "fitted"
+    }
+  },
+  "global": {
+    "a": 2.4592903497528766,
+    "b": 0.7176314932737095,
+    "sample_size": 849,
+    "status": "fitted"
+  }
+}

@@ -1,0 +1,22 @@
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Credentials
+.env
+.env.*
+*.key
+*.pem
+*credentials*
+*secret*
+
+# Local data
+*.sqlite
+*.sqlite3
+*.db
+*.log
+.cache/

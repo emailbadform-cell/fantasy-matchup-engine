@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fantasy Matchup Engine</title>
+<style>
+:root {
+    --bg: #0b0f17;
+    --panel: #121824;
+    --panel-2: #171f2e;
+    --line: #263247;
+    --text: #f4f7fb;
+    --muted: #93a1b7;
+    --accent: #7c8cff;
+    --accent-2: #aab4ff;
+    --good: #72dda0;
+    --bad: #ff8d96;
+    --warn: #f4c96b;
+    --shadow: 0 16px 40px rgba(0,0,0,.22);
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 10% 0%, rgba(124,140,255,.12), transparent 30rem),
+        var(--bg);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.45;
+}
+.container { width: min(1440px, calc(100% - 40px)); margin: 0 auto; padding: 42px 0 70px; }
+.hero { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:24px; }
+.eyebrow { color:var(--accent-2); font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }
+h1 { margin:6px 0 4px; font-size:clamp(28px,4vw,44px); letter-spacing:-.035em; }
+.subtitle { color:var(--muted); font-size:15px; }
+.controls {
+    display:grid;
+    grid-template-columns: 1.4fr 1.2fr 120px auto auto;
+    gap:10px;
+    padding:14px;
+    border:1px solid var(--line);
+    background:rgba(18,24,36,.9);
+    border-radius:14px;
+    box-shadow:var(--shadow);
+}
+.field label { display:block; margin:0 0 6px 2px; color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+input, button {
+    width:100%;
+    min-height:44px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    font:inherit;
+}
+input { padding:0 12px; background:#0d131e; color:var(--text); outline:none; }
+input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(124,140,255,.12); }
+button {
+    align-self:end;
+    padding:0 18px;
+    background:linear-gradient(135deg, #6879ff, #8794ff);
+    color:white;
+    border:0;
+    font-weight:800;
+    cursor:pointer;
+    white-space:nowrap;
+}
+button:hover:not(:disabled) { filter:brightness(1.08); transform:translateY(-1px); }
+button:disabled { opacity:.55; cursor:not-allowed; }
+#status {
+    display:flex; align-items:center; gap:8px;
+    min-height:42px; margin:12px 0 22px; padding:10px 13px;
+    color:var(--muted); background:rgba(18,24,36,.62);
+    border:1px solid var(--line); border-radius:10px; font-size:13px;
+}
+#status::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--muted); }
+#status.success { color:var(--good); }
+#status.success::before { background:var(--good); }
+#status.error { color:var(--bad); }
+#status.error::before { background:var(--bad); }
+.summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:22px; }
+.card {
+    position:relative; overflow:hidden; min-height:112px;
+    padding:17px 18px; background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow);
+}
+.card::after { content:""; position:absolute; inset:auto -25px -45px auto; width:95px; height:95px; border-radius:50%; background:rgba(124,140,255,.07); }
+.label { color:var(--muted); font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.075em; }
+.value { margin-top:8px; font-size:25px; line-height:1.15; font-weight:850; letter-spacing:-.025em; }
+.card .value.small { font-size:16px; overflow-wrap:anywhere; }
+.section-title { display:flex; justify-content:space-between; align-items:center; margin:28px 0 10px; }
+.section-title h2 { margin:0; font-size:18px; }
+.section-title span { color:var(--muted); font-size:12px; }
+.table-shell { overflow:auto; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); }
+table { width:100%; border-collapse:collapse; background:var(--panel); }
+th,td { padding:14px 16px; border-bottom:1px solid var(--line); text-align:left; white-space:nowrap; }
+th { position:sticky; top:0; background:#151d2b; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.09em; }
+tbody tr:last-child td { border-bottom:0; }
+tbody tr:hover { background:rgba(124,140,255,.055); }
+.pos {
+    display:inline-flex; min-width:38px; justify-content:center; padding:4px 7px;
+    border:1px solid rgba(124,140,255,.35); border-radius:7px;
+    color:var(--accent-2); background:rgba(124,140,255,.09); font-size:11px; font-weight:850;
+}
+.player-name { font-weight:800; }
+.matchup { color:var(--muted); }
+.points { font-size:17px; font-weight:900; color:var(--good); }
+.players-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.player {
+    padding:18px; background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow);
+}
+.player-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding-bottom:14px; border-bottom:1px solid var(--line); }
+.player h3 { margin:0 0 4px; font-size:19px; }
+.player-meta { color:var(--muted); font-size:13px; }
+.proj { text-align:right; }
+.proj .big { color:var(--good); font-size:27px; font-weight:900; line-height:1; }
+.proj .caption { margin-top:5px; color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+.stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:14px; }
+.stat { min-width:0; padding:10px; background:#0d131e; border:1px solid #202b3d; border-radius:9px; }
+.stat .value { font-size:16px; overflow-wrap:anywhere; }
+details { margin-top:9px; border:1px solid var(--line); border-radius:9px; background:#0e141f; overflow:hidden; }
+summary { padding:10px 12px; cursor:pointer; color:#cbd3e2; font-size:12px; font-weight:750; }
+summary:hover { background:rgba(255,255,255,.025); }
+pre { margin:0; padding:12px; border-top:1px solid var(--line); max-height:330px; overflow:auto; white-space:pre-wrap; word-break:break-word; color:#aeb9cb; font:11px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; }
+.empty { padding:30px; color:var(--muted); text-align:center; border:1px dashed var(--line); border-radius:12px; }
+@media (max-width: 1000px) {
+    .controls { grid-template-columns:1fr 1fr; }
+    .summary { grid-template-columns:repeat(2,1fr); }
+    .players-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 620px) {
+    .container { width:min(100% - 22px,1440px); padding-top:24px; }
+    .hero { align-items:flex-start; flex-direction:column; }
+    .controls { grid-template-columns:1fr; }
+    .summary { grid-template-columns:1fr 1fr; }
+    .stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="hero">
+        <div>
+            <div class="eyebrow">NFL Projection Workspace</div>
+            <h1>Fantasy Matchup Engine</h1>
+            <div class="subtitle">Team projections, matchup context, model factors and audit detail in one view.</div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="field"><label for="source">Fantasy Source</label><select id="source"><option value="sleeper">Sleeper</option><option value="espn">ESPN</option></select></div>
+        <div class="field"><label for="league">League ID</label><input id="league" value="1394139092932907008" placeholder="League ID"></div>
+        <div class="field"><label id="teamLabel" for="username">Sleeper Username</label><input id="username" value="xTheSleeperSyndicate" placeholder="Username"></div>
+        <div class="field"><label for="week">NFL Week</label><input id="week" value="4" type="number" min="1" max="18" placeholder="Week"></div>
+        <button id="load">Load Projection</button>
+        <button id="optimize" disabled>Optimize Lineup</button>
+        <button id="waivers" disabled>Find Waiver Upgrades</button><button id="cancelWaivers" disabled>Cancel Waiver Search</button>
+    </div>
+
+    <div id="status">Ready to load a projection.</div><div id="waiverProgress" style="display:none;margin:-10px 0 22px;padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(18,24,36,.62)"><div style="display:flex;justify-content:space-between;gap:12px"><strong id="waiverStage">Preparing…</strong><span id="waiverCount" class="muted"></span></div><div style="height:10px;background:#0d131e;border-radius:999px;overflow:hidden;margin:9px 0"><div id="waiverBar" style="height:100%;width:0%;background:linear-gradient(90deg,#6879ff,#8794ff);transition:width .25s"></div></div><div id="waiverTiming" style="color:var(--muted);font-size:12px"></div></div>
+    <div id="summary"></div>
+    <div id="table"></div>
+    <div id="optimal"></div>
+    <div id="waiverResults"></div>
+    <div id="bench"></div>
+    <div id="details"></div>
+</div>
+
+<script>
+var loadButton = document.getElementById("load");
+var optimizeButton = document.getElementById("optimize");
+var waiverButton = document.getElementById("waivers");
+var cancelWaiverButton=document.getElementById("cancelWaivers"); var activeWaiverJob=null;
+var lastPrediction = null;
+var sourceSelect = document.getElementById("source");
+function updateSourceUI(){ var espn=sourceSelect.value === "espn"; var label=document.getElementById("teamLabel"); var input=document.getElementById("username"); label.textContent=espn ? "ESPN Team ID" : "Sleeper Username"; input.placeholder=espn ? "ESPN Team ID" : "Username"; if(espn && input.value === "xTheSleeperSyndicate") input.value=""; }
+sourceSelect.addEventListener("change",updateSourceUI);
+
+function escapeHtml(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+function setStatus(message, className) {
+    var status = document.getElementById("status");
+    status.textContent = message;
+    status.className = className || "";
+}
+function formatNumber(value) {
+    if (value === null || value === undefined || value === "" || isNaN(Number(value))) return "—";
+    return Number(value).toFixed(2);
+}
+function getPoints(player) {
+    if (!player || !player.projection) return null;
+    return player.projection.median_fantasy_points;
+}
+function displayKey(key) {
+    return String(key).replace(/_/g, " ").replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+function loadPrediction() {
+    var source = document.getElementById("source").value;
+    var league = document.getElementById("league").value.trim();
+    var username = document.getElementById("username").value.trim();
+    var week = document.getElementById("week").value.trim();
+
+    if (!league || !username || !week) {
+        setStatus(source === "espn" ? "Please enter an ESPN league ID, team ID and week." : "Please enter a league ID, username and week.", "error");
+        return;
+    }
+    loadButton.disabled = true;
+    loadButton.textContent = "Loading…";
+    setStatus("Loading projection…");
+
+    var url = source === "espn"
+        ? window.location.origin + "/api/v1/fantasy/espn/league/" + encodeURIComponent(league) + "/team/" + encodeURIComponent(username) + "/week/" + encodeURIComponent(week) + "/prediction?season=2026"
+        : window.location.origin + "/api/v1/fantasy/league/" + encodeURIComponent(league) + "/team/" + encodeURIComponent(username) + "/week/" + encodeURIComponent(week) + "/prediction?season=2026";
+
+    fetch(url, { method:"GET", cache:"no-store" })
+        .then(function(response) {
+            if (!response.ok) {
+                return response.text().then(function(body) {
+                    throw new Error("API returned HTTP " + response.status + (body ? ": " + body.slice(0,220) : ""));
+                });
+            }
+            return response.json();
+        })
+        .then(function(data) {
+            if (!data || !data.team || !Array.isArray(data.team.starters)) {
+                throw new Error("API response does not contain team.starters.");
+            }
+            var starters = data.team.starters;
+            if (!starters.length) throw new Error("The API returned zero starters.");
+            lastPrediction = data;
+            renderSummary(data, starters);
+            renderTable(starters);
+            renderBench((data.team && data.team.bench) || []);
+            document.getElementById("optimal").innerHTML = "";
+            renderDetails(starters);
+            optimizeButton.disabled = !data.team || !Array.isArray(data.team.roster) || !Array.isArray(data.team.lineup_slots);
+            waiverButton.disabled = optimizeButton.disabled;
+            document.getElementById("waiverResults").innerHTML = "";
+            setStatus("Loaded " + starters.length + " starters and " + (((data.team || {}).bench || []).length) + " bench projections.", "success");
+        })
+        .catch(function(error) {
+            console.error("Dashboard error:", error);
+            setStatus("Prediction failed: " + error.message, "error");
+        })
+        .finally(function() {
+            loadButton.disabled = false;
+            loadButton.textContent = "Load Projection";
+        });
+}
+function renderSummary(data, starters) {
+    var total = 0, usable = 0;
+    starters.forEach(function(player) {
+        var points = getPoints(player);
+        if (points !== null && !isNaN(Number(points))) { total += Number(points); usable++; }
+    });
+    var version = "Unknown";
+    if (data.versioning && data.versioning.model_version) version = data.versioning.model_version;
+    else if (data.architecture_version) version = data.architecture_version;
+
+    document.getElementById("summary").innerHTML =
+        '<div class="summary">' +
+        card("Projected Team Points", formatNumber(total)) +
+        card("Starters", starters.length) +
+        card("Usable Projections", usable + " / " + starters.length) +
+        card("Model Version", escapeHtml(version), "small") +
+        '</div>';
+}
+function card(label, value, cls) {
+    return '<div class="card"><div class="label">' + label + '</div><div class="value ' + (cls || "") + '">' + value + '</div></div>';
+}
+function renderTable(starters) {
+    var html =
+        '<div class="section-title"><h2>Starting Lineup</h2><span>Low / median / high fantasy-point outcomes</span></div>' +
+        '<div class="table-shell"><table><thead><tr>' +
+        '<th>Pos</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data</th>' +
+        '</tr></thead><tbody>';
+
+    starters.forEach(function(player) {
+        html += '<tr>' +
+            '<td><span class="pos">' + escapeHtml(player.position || "—") + '</span></td>' +
+            '<td class="player-name">' + escapeHtml(player.name || "Unknown") + '</td>' +
+            '<td>' + escapeHtml(player.team || "—") + '</td>' +
+            '<td class="matchup">vs ' + escapeHtml(player.opponent || "—") + '</td>' +
+            '<td class="points">' + formatNumber((player.projection || {}).low) + '</td>' +
+            '<td class="points">' + formatNumber(getPoints(player)) + '</td>' +
+            '<td class="points">' + formatNumber((player.projection || {}).high) + '</td>' +
+            '<td>' + ((player.data_quality || {}).history_complete === false ? '<strong>DATA PENDING</strong>' : 'Current') + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table></div>';
+    document.getElementById("table").innerHTML = html;
+}
+
+function renderBench(bench) {
+    if (!bench.length) { document.getElementById("bench").innerHTML = ""; return; }
+    var html = '<div class="section-title"><h2>Bench</h2><span>Current-week projections</span></div>' +
+        '<div class="table-shell"><table><thead><tr><th>Pos</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data</th></tr></thead><tbody>';
+    bench.forEach(function(player) {
+        html += '<tr><td><span class="pos">' + escapeHtml(player.position || "—") + '</span></td>' +
+            '<td class="player-name">' + escapeHtml(player.name || "Unknown") + '</td><td>' + escapeHtml(player.team || "—") + '</td>' +
+            '<td class="matchup">vs ' + escapeHtml(player.opponent || "—") + '</td><td class="points">' + formatNumber((player.projection || {}).low) + '</td>' +
+            '<td class="points">' + formatNumber(getPoints(player)) + '</td><td class="points">' + formatNumber((player.projection || {}).high) + '</td>' +
+            '<td>' + ((player.data_quality || {}).history_complete === false ? '<strong>DATA PENDING</strong>' : 'Current') + '</td></tr>';
+    });
+    html += '</tbody></table></div>'; document.getElementById("bench").innerHTML = html;
+}
+function optimizeLineup() {
+    if (!lastPrediction || !lastPrediction.team) return;
+    optimizeButton.disabled = true; optimizeButton.textContent = "Optimizing…";
+    fetch(window.location.origin + "/api/v1/lineup/optimize", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({players:lastPrediction.team.roster || [], slots:lastPrediction.team.lineup_slots || []})})
+      .then(function(r){ if(!r.ok) return r.text().then(function(b){throw new Error("HTTP " + r.status + ": " + b.slice(0,180));}); return r.json(); })
+      .then(function(data){ renderOptimal((data || {}).optimization || {}); setStatus("Optimal lineup calculated for Week " + lastPrediction.week + ".", "success"); })
+      .catch(function(e){ setStatus("Optimization failed: " + e.message, "error"); })
+      .finally(function(){ optimizeButton.disabled=false; optimizeButton.textContent="Optimize Lineup"; });
+}
+function renderOptimal(opt) {
+    var rows=opt.assignment || []; var html='<div class="section-title"><h2>Optimal Lineup</h2><span>Maximizes current-week median projected points</span></div>' +
+      '<div class="summary">' + card("Optimal Team Points", formatNumber(opt.median_points || 0)) + card("Filled Slots", String(opt.filled_slots == null ? rows.length : opt.filled_slots)) + card("Open Slots", String(opt.open_slots || 0)) + card("Objective", "Median", "small") + '</div>' +
+      '<div class="table-shell"><table><thead><tr><th>Slot</th><th>Pos</th><th>Player</th><th>Team</th><th>Median</th></tr></thead><tbody>';
+    rows.forEach(function(x){ html += '<tr><td><span class="pos">' + escapeHtml(x.slot) + '</span></td><td>' + escapeHtml(x.position || "—") + '</td><td class="player-name">' + escapeHtml(x.name || "Unknown") + '</td><td>' + escapeHtml(x.team || "—") + '</td><td class="points">' + formatNumber(x.median_fantasy_points) + '</td></tr>'; });
+    (opt.open_slot_names || []).forEach(function(slot){ html += '<tr><td><span class="pos">' + escapeHtml(slot) + '</span></td><td>—</td><td class="player-name"><strong>OPEN — no eligible player</strong></td><td>—</td><td class="points">0.00</td></tr>'; });
+    html += '</tbody></table></div>'; document.getElementById("optimal").innerHTML=html;
+}
+
+function findWaiverUpgrades() {
+    if (!lastPrediction) return;
+    var platform=lastPrediction.platform || sourceSelect.value, league=document.getElementById("league").value.trim(), team=document.getElementById("username").value.trim(), week=document.getElementById("week").value.trim();
+    waiverButton.disabled=true; cancelWaiverButton.disabled=false; waiverButton.textContent="Searching Waivers…";
+    document.getElementById("waiverProgress").style.display="block"; setStatus("Starting waiver analysis…");
+    var url=window.location.origin+"/api/v1/waivers/start/"+encodeURIComponent(platform)+"/league/"+encodeURIComponent(league)+"/team/"+encodeURIComponent(team)+"/week/"+encodeURIComponent(week)+"?season=2026";
+    fetch(url,{method:"POST",cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(x){activeWaiverJob=x.job_id;pollWaiverJob();}).catch(function(e){finishWaiverUI();setStatus("Waiver search failed: "+e.message,"error");});
+}
+function pollWaiverJob(){ if(!activeWaiverJob)return; fetch(window.location.origin+"/api/v1/waivers/status/"+activeWaiverJob,{cache:"no-store"}).then(function(r){return r.json();}).then(function(j){
+    document.getElementById("waiverStage").textContent=j.stage||"Working…"; document.getElementById("waiverBar").style.width=Math.max(0,Math.min(100,j.percent||0))+"%";
+    document.getElementById("waiverCount").textContent=j.total ? ((j.processed||0)+" / "+j.total) : ((j.percent||0)+"%");
+    document.getElementById("waiverTiming").textContent="Elapsed: "+formatDuration(j.elapsed_seconds)+(j.eta_seconds!=null?" • Estimated remaining: "+formatDuration(j.eta_seconds):"");
+    if(j.status==="complete"){renderWaivers(((j.result||{}).waiver_advisor)||{});setStatus("Waiver analysis complete.","success");finishWaiverUI();}
+    else if(j.status==="error"||j.status==="cancelled"){setStatus(j.status==="cancelled"?"Waiver search cancelled.":"Waiver search failed: "+(j.error||"Unknown error"),j.status==="cancelled"?"":"error");finishWaiverUI();}
+    else setTimeout(pollWaiverJob,500);
+  }).catch(function(e){setStatus("Waiver progress check failed: "+e.message,"error");finishWaiverUI();}); }
+function formatDuration(v){v=Math.max(0,Math.round(Number(v)||0));return v<60?v+"s":Math.floor(v/60)+"m "+(v%60)+"s";}
+function finishWaiverUI(){waiverButton.disabled=false;cancelWaiverButton.disabled=true;waiverButton.textContent="Find Waiver Upgrades";activeWaiverJob=null;}
+cancelWaiverButton.addEventListener("click",function(){if(!activeWaiverJob)return;cancelWaiverButton.disabled=true;fetch(window.location.origin+"/api/v1/waivers/cancel/"+activeWaiverJob,{method:"POST"});});
+function renderWaivers(w) {
+    var moves=w.moves||[];
+    var html='<div class="section-title"><h2>Waiver Upgrades</h2><span>Conservative current-week moves; rest-of-season value is not yet modeled</span></div>';
+    if(!moves.length){html+='<div class="card"><div class="label">Recommendation</div><div class="value small">No positive current-week waiver upgrade found.</div></div>';document.getElementById("waiverResults").innerHTML=html;return;}
+    html+='<div class="summary">'+card("Recommended Moves",moves.length)+card("Projected Candidates",w.available_projected_count||w.evaluated_candidates||0)+card("Final Optimal Points",formatNumber(w.final_optimal_team_points||0))+card("Objective","Median","small")+'</div>'+
+      '<div class="table-shell"><table><thead><tr><th>Move</th><th>Pick Up</th><th>Pos</th><th>Drop</th><th>Pos</th><th>Pickup Median</th><th>Drop Median</th><th>Team Gain</th><th>Starting Lineup Changes</th><th>Candidate Status</th><th>Teammate Injury Impact</th><th>Depth Promotion</th><th>Role Change</th><th>Opportunity</th><th>ROS Value</th></tr></thead><tbody>';
+    moves.forEach(function(m,i){var a=m.pickup||{},d=m.drop||{};html+='<tr><td>#'+(i+1)+'</td><td class="player-name">'+escapeHtml(a.name||"Unknown")+'</td><td><span class="pos">'+escapeHtml(a.position||"—")+'</span></td><td class="player-name">'+escapeHtml(d.name||"Unknown")+'</td><td><span class="pos">'+escapeHtml(d.position||"—")+'</span></td><td class="points">'+formatNumber(a.median_fantasy_points)+'</td><td class="points">'+formatNumber(d.median_fantasy_points)+'</td><td class="points">+'+formatNumber(m.team_points_gain)+'</td><td>'+escapeHtml((m.lineup_changes||[]).map(function(c){return c.slot+': '+(c.previous_starter||'Open')+' → '+(c.new_starter||'Open');}).join('; ')||'None')+'</td><td>'+escapeHtml(((a.waiver_role_intel||{}).injury_status)||"Unknown")+'</td><td>'+escapeHtml((((a.waiver_role_intel||{}).teammate_injuries)||[]).map(function(x){return (x.name||"Unknown")+" ("+(x.status||"out")+")";}).join(", ")||"None detected")+'</td><td>'+(((a.waiver_role_intel||{}).depth_chart_promotion)?"Yes":"No")+'</td><td>'+escapeHtml(((a.waiver_role_intel||{}).role_change)||"—")+'</td><td>'+escapeHtml(String(((a.waiver_role_intel||{}).opportunity_multiplier)||1)+"x")+'</td><td>'+escapeHtml(((a.waiver_role_intel||{}).rest_of_season_value)||"Baseline")+'</td></tr>';});
+    html+='</tbody></table></div>';document.getElementById("waiverResults").innerHTML=html;
+}
+
+function renderDetails(starters) {
+    var html = '<div class="section-title"><h2>Player Detail</h2><span>Projection components and model audit</span></div><div class="players-grid">';
+
+    starters.forEach(function(player) {
+        var projection = player.projection || {};
+        var stats = "";
+        Object.keys(projection).forEach(function(key) {
+            if (key === "median_fantasy_points" || key === "low" || key === "high") return;
+            stats += '<div class="stat"><div class="label">' + escapeHtml(displayKey(key)) +
+                '</div><div class="value">' + formatNumber(projection[key]) + '</div></div>';
+        });
+        if (!stats) stats = '<div class="empty">No additional projection stats.</div>';
+
+        html += '<article class="player">' +
+            '<div class="player-head"><div>' +
+            '<h3>' + escapeHtml(player.name || "Unknown Player") + '</h3>' +
+            '<div class="player-meta"><span class="pos">' + escapeHtml(player.position || "—") + '</span> &nbsp;' +
+            escapeHtml(player.team || "—") + ' vs ' + escapeHtml(player.opponent || "—") + '</div>' +
+            '</div><div class="proj"><div class="big">' + formatNumber(getPoints(player)) +
+            '</div><div class="caption">Projected Pts</div></div></div>' +
+            '<div class="stats">' + stats + '</div>' +
+            detailBlock("Factors", player.factors || {}) +
+            detailBlock("Layer Audit", player.layer_audit || {}) +
+            detailBlock("Factor Ownership Ledger", player.factor_ledger || {}) +
+            detailBlock("Data Quality", player.data_quality || {}) +
+            '</article>';
+    });
+    html += '</div>';
+    document.getElementById("details").innerHTML = html;
+}
+function detailBlock(title, value) {
+    return '<details><summary>' + escapeHtml(title) + '</summary><pre>' +
+        escapeHtml(JSON.stringify(value, null, 2)) + '</pre></details>';
+}
+
+updateSourceUI();
+loadButton.addEventListener("click", loadPrediction);
+optimizeButton.addEventListener("click", optimizeLineup);
+waiverButton.addEventListener("click", findWaiverUpgrades);
+document.getElementById("week").addEventListener("keydown", function(event) {
+    if (event.key === "Enter") loadPrediction();
+});
+</script>
+</body>
+</html>
