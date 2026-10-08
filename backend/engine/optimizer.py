@@ -31,6 +31,14 @@ def normalize_slot(slot):
     return aliases.get(raw, raw)
 
 
+def _projection_high(projection):
+    """Use the production predictor's `high` (P90), with legacy alias support."""
+    value = projection.get("high_fantasy_points")
+    if value is None:
+        value = projection.get("high")
+    return value
+
+
 def optimize_lineup(players, slots):
     """Exact roster optimizer: maximize legal filled slots first, then median points."""
     players = [p for p in players if p.get("projection", {}).get("median_fantasy_points") is not None]
@@ -68,7 +76,7 @@ def optimize_lineup(players, slots):
             "position": p.get("position"),
             "team": p.get("team"),
             "median_fantasy_points": p.get("projection", {}).get("median_fantasy_points", 0.0),
-            "high_fantasy_points": p.get("projection", {}).get("high_fantasy_points"),
+            "high_fantasy_points": _projection_high(p.get("projection") or {}),
         })
     high_values = [a.get("high_fantasy_points") for a in assignment]
     # A missing high projection is unknown, not zero: never invent an upper bound.
