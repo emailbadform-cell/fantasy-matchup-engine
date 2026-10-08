@@ -245,27 +245,8 @@ def simulate(base,sd,n=3000,seed=13): return simulation(base,sd,n=n,seed=seed)
 
 
 def scoring(settings,stat,pos=None):
-    s=settings or {}
-    def sv(*keys,default=0):
-        for key in keys:
-            if key in s and s[key] is not None:
-                try:return float(s[key])
-                except (ValueError,TypeError):pass
-        return default
-    points=0.0
-    points+=stat.get("passing_yards",0)*sv("pass_yd",default=.04)
-    points+=stat.get("passing_tds",0)*sv("pass_td",default=4)
-    points+=stat.get("interceptions",0)*sv("pass_int",default=-2)
-    points+=stat.get("rushing_yards",0)*sv("rush_yd",default=.1)
-    points+=stat.get("rushing_tds",0)*sv("rush_td",default=6)
-    points+=stat.get("receiving_yards",0)*sv("rec_yd",default=.1)
-    points+=stat.get("receptions",0)*sv("rec",default=1)
-    points+=stat.get("receiving_tds",0)*sv("rec_td",default=6)
-    points+=stat.get("two_point_conversions",0)*sv("two_pt","two_point",default=2)
-    points+=stat.get("fumbles_lost",0)*sv("fum_lost",default=-2)
-    if pos=="K": points+=stat.get("field_goals",0)*sv("fgm",default=3)+stat.get("extra_points",0)*sv("xpm",default=1)
-    if pos=="DEF": points+=stat.get("sacks",0)*sv("def_sack",default=1)+stat.get("interceptions",0)*sv("def_int",default=2)+stat.get("fumble_recoveries",0)*sv("def_fumble_rec",default=2)+stat.get("def_tds",0)*sv("def_td",default=6)
-    return points
+    from backend.scoring.league_rules import score
+    return score(settings, stat, pos)
 
 
 def start_sit(players): return sorted(players,key=lambda x:x.get("projection",{}).get("median_fantasy_points",0),reverse=True)

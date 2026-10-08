@@ -109,9 +109,19 @@ class ESPNClient:
         data=self._get(league_id,("mSettings",))
         raw=((data.get("settings") or {}).get("scoringSettings") or {}).get("scoringItems") or []
         out={}
+        unmapped=[]
         for item in raw:
-            key=SCORING_IDS.get(item.get("statId"))
-            if key and item.get("points") is not None: out[key]=item.get("points")
+            stat_id=item.get("statId")
+            key=SCORING_IDS.get(stat_id)
+            if key and item.get("points") is not None:
+                out[key]=item["points"]
+            elif item.get("points") is not None:
+                try:
+                    if float(item["points"]) != 0: unmapped.append(stat_id)
+                except (TypeError, ValueError):
+                    unmapped.append(stat_id)
+        if unmapped:
+            out["_espn_unmapped_stat_ids"] = sorted(set(str(x) for x in unmapped))
         return out
 
     def lineup_settings(self, league_id):

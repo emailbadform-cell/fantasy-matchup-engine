@@ -1,3 +1,4 @@
+from backend.scoring.league_rules import coverage
 import re
 from .features import *
 from .layers import PREDICTIVE_LAYERS, propagation_audit
@@ -487,7 +488,7 @@ class PredictionEngine:
         ir=[x for x in all_results if x.get("lineup_status")=="ir"]
         total=sum(x.get("projection",{}).get("median_fantasy_points",0) for x in results); gate=self._model_gate(results)
         lineup_slots=(ctx.get("lineup_settings") or {}).get("starter_slots") or []
-        return {"platform":"espn","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":ctx.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"team":{"roster_id":ctx.get("team_id"),"owner_id":ctx.get("owner_id"),"username":str(team_id),"display_name":ctx.get("display_name"),"median_projected_fantasy_points":total,"starters":results,"bench":bench,"ir":ir,"roster":all_results,"lineup_slots":lineup_slots,"lineup_settings":ctx.get("lineup_settings") or {}},"opponent":{"roster_id":ctx.get("opponent_team_id"),"starters":[]},"integration":{"unresolved_roster_players":ctx.get("unresolved",[])},"model_gate":gate,"versioning":versioning(self.model_version)}
+        return {"platform":"espn","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":ctx.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"scoring_coverage":coverage(settings,"espn"),"team":{"roster_id":ctx.get("team_id"),"owner_id":ctx.get("owner_id"),"username":str(team_id),"display_name":ctx.get("display_name"),"median_projected_fantasy_points":total,"starters":results,"bench":bench,"ir":ir,"roster":all_results,"lineup_slots":lineup_slots,"lineup_settings":ctx.get("lineup_settings") or {}},"opponent":{"roster_id":ctx.get("opponent_team_id"),"starters":[]},"integration":{"unresolved_roster_players":ctx.get("unresolved",[])},"model_gate":gate,"versioning":versioning(self.model_version)}
 
     def predict_team(self, league_id, username, season, week):
         user,target,tm,oppm,opp,players=self._context(league_id,username,season,week)
@@ -519,7 +520,7 @@ class PredictionEngine:
         lineup_slots=[str(x).upper() for x in raw_positions if str(x).upper() not in {"BN","BENCH","IR","RESERVE","TAXI"}]
         total=sum(x.get("projection",{}).get("median_fantasy_points",0) for x in results)
         gate=self._model_gate(results)
-        return {"platform":"sleeper","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":tm.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"team":{"roster_id":target.get("roster_id"),"owner_id":target.get("owner_id"),"username":user.get("username"),"display_name":user.get("display_name"),"median_projected_fantasy_points":total,"starters":results,"bench":bench,"ir":ir,"roster":[x for x in all_results if x.get("lineup_status") != "ir"],"lineup_slots":lineup_slots,"lineup_settings":{"roster_positions":raw_positions}},"opponent":{"roster_id":opp.get("roster_id") if opp else None,"starters":oppm.get("starters",[]) if oppm else []},"model_gate":gate,"versioning":versioning(self.model_version)}
+        return {"platform":"sleeper","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":tm.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"scoring_coverage":coverage(settings,"sleeper"),"team":{"roster_id":target.get("roster_id"),"owner_id":target.get("owner_id"),"username":user.get("username"),"display_name":user.get("display_name"),"median_projected_fantasy_points":total,"starters":results,"bench":bench,"ir":ir,"roster":[x for x in all_results if x.get("lineup_status") != "ir"],"lineup_slots":lineup_slots,"lineup_settings":{"roster_positions":raw_positions}},"opponent":{"roster_id":opp.get("roster_id") if opp else None,"starters":oppm.get("starters",[]) if oppm else []},"model_gate":gate,"versioning":versioning(self.model_version)}
 
     def project_candidate(self, player, players, season, week, settings, starters=()):
         """Project one waiver/free-agent candidate through the same FME path as roster players."""

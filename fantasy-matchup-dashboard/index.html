@@ -240,7 +240,15 @@ function loadPrediction() {
             optimizeButton.disabled = !data.team || !Array.isArray(data.team.roster) || !Array.isArray(data.team.lineup_slots);
             waiverButton.disabled = optimizeButton.disabled;
             document.getElementById("waiverResults").innerHTML = "";
-            setStatus("Loaded " + starters.length + " starters and " + (((data.team || {}).bench || []).length) + " bench projections.", "success");
+            var scoringAudit = data.scoring_coverage || {};
+            var missingRules = scoringAudit.unmodeled_configured_rules || [];
+            if (missingRules.length) {
+                setStatus("Loaded " + starters.length + " starters. Scoring coverage warning: " + missingRules.length +
+                    " league scoring rules are not included in projections (" + missingRules.slice(0, 5).join(", ") +
+                    (missingRules.length > 5 ? ", …" : "") + "). Rankings and waiver gains may differ from league scoring.", "error");
+            } else {
+                setStatus("Loaded " + starters.length + " starters and " + (((data.team || {}).bench || []).length) + " bench projections.", "success");
+            }
         })
         .catch(function(error) {
             console.error("Dashboard error:", error);

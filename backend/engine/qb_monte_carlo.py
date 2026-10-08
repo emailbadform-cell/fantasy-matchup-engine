@@ -84,7 +84,10 @@ def simulate_qb_stats(projected, history, settings=None, n=1_000_000, seed=13):
           + pass_tds * _score_coeff(settings,"pass_td",4)
           + interceptions * _score_coeff(settings,"pass_int",-2)
           + rushing_yards * _score_coeff(settings,"rush_yd",.1)
-          + rushing_tds * _score_coeff(settings,"rush_td",6))
+          + rushing_tds * _score_coeff(settings,"rush_td",6)
+          + attempts * _score_coeff(settings,"pass_att",0)
+          + completions * _score_coeff(settings,"pass_cmp",0)
+          + (attempts - completions) * _score_coeff(settings,"pass_inc",0))
 
     out = {
         "n": n, "seed": seed, "method": "stat_level_numpy",
