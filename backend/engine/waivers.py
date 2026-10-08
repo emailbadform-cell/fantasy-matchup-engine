@@ -138,7 +138,14 @@ def recommend_waiver_moves(roster, candidates, slots, max_moves=12, min_gain=0.0
         if _pid(add) not in next_starters:
             break
         pickup_assignment=next((x for x in opt.get('assignment',[]) if str(x.get('player_id'))==_pid(add)),{})
-        moves.append({'pickup':_brief(add),'drop':_brief(drop),'projected_team_points_before':round(baseline_points,2),'projected_team_points_after':round(float(opt.get('median_points') or 0.0),2),'team_points_gain':round(gain,2),'player_median_difference':round(raw_gain,2),'lineup_changes':_lineup_changes(baseline,opt),'starter_replaced':[{'player_id':x.get('player_id'),'name':x.get('name'),'position':x.get('position')} for x in replaced],'pickup_starting_slot':pickup_assignment.get('slot'),'drop_was_starter':_pid(drop) in prior_starters,'gain_basis':'optimized_starting_lineup_only','recommendation_type':'current_week_only','rest_of_season_assessed':False,'bye_protection_applied':True,'warning':'Future-week projections are not yet available; do not interpret this as a rest-of-season upgrade.'})
+        # Without multiweek player values, classify—not endorse—the permanent drop.
+        # A positive starting-lineup delta alone never establishes ROS improvement.
+        decision = 'Streaming only — review drop' if gain < 3.0 else 'Review — ROS unverified'
+        reason = ('Small current-week starting-lineup gain; verify future value of ' +
+                  str(drop.get('name') or drop.get('full_name') or 'the dropped player') +
+                  ' before making a permanent transaction.')
+        moves.append({'new_starter':add.get('name') or add.get('full_name'),
+                      'decision':decision,'decision_reason':reason, 'pickup':_brief(add),'drop':_brief(drop),'projected_team_points_before':round(baseline_points,2),'projected_team_points_after':round(float(opt.get('median_points') or 0.0),2),'team_points_gain':round(gain,2),'player_median_difference':round(raw_gain,2),'lineup_changes':_lineup_changes(baseline,opt),'starter_replaced':[{'player_id':x.get('player_id'),'name':x.get('name'),'position':x.get('position')} for x in replaced],'pickup_starting_slot':pickup_assignment.get('slot'),'drop_was_starter':_pid(drop) in prior_starters,'gain_basis':'optimized_starting_lineup_only','recommendation_type':'current_week_only','rest_of_season_assessed':False,'bye_protection_applied':True,'warning':'Future-week projections are not yet available; do not interpret this as a rest-of-season upgrade.'})
         current=[x for x in current if _pid(x)!=_pid(drop)]+[add]
         available=[x for x in available if _pid(x)!=_pid(add)]
         baseline=opt; baseline_points=float(opt.get('median_points') or 0.0)

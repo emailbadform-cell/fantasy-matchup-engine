@@ -272,6 +272,14 @@ function renderSummary(data, starters) {
 function card(label, value, cls) {
     return '<div class="card"><div class="label">' + label + '</div><div class="value ' + (cls || "") + '">' + value + '</div></div>';
 }
+function playerDataLabel(player) {
+    var q = (player && player.data_quality) || {};
+    var status = String(q.history_status || '');
+    if (status === 'player_week_unrecorded') return '<span title="Team data published; this player has no recorded weekly stats. Participation has not been verified.">No prior-week stats</span>';
+    if (q.history_complete === false) return '<strong title="Required team-week data not confirmed available">DATA PENDING</strong>';
+    if (q.fallback_used) return '<span title="Projection used model fallback inputs">Limited history</span>';
+    return 'Current';
+}
 function renderTable(starters) {
     var html =
         '<div class="section-title"><h2>Starting Lineup</h2><span>Low / median / high fantasy-point outcomes</span></div>' +
@@ -288,7 +296,7 @@ function renderTable(starters) {
             '<td class="points">' + formatNumber((player.projection || {}).low) + '</td>' +
             '<td class="points">' + formatNumber(getPoints(player)) + '</td>' +
             '<td class="points">' + formatNumber((player.projection || {}).high) + '</td>' +
-            '<td>' + ((player.data_quality || {}).history_complete === false ? '<strong>DATA PENDING</strong>' : 'Current') + '</td>' +
+            '<td>' + playerDataLabel(player) + '</td>' +
             '</tr>';
     });
     html += '</tbody></table></div>';
@@ -304,7 +312,7 @@ function renderBench(bench) {
             '<td class="player-name">' + escapeHtml(player.name || "Unknown") + '</td><td>' + escapeHtml(player.team || "—") + '</td>' +
             '<td class="matchup">vs ' + escapeHtml(player.opponent || "—") + '</td><td class="points">' + formatNumber((player.projection || {}).low) + '</td>' +
             '<td class="points">' + formatNumber(getPoints(player)) + '</td><td class="points">' + formatNumber((player.projection || {}).high) + '</td>' +
-            '<td>' + ((player.data_quality || {}).history_complete === false ? '<strong>DATA PENDING</strong>' : 'Current') + '</td></tr>';
+            '<td>' + playerDataLabel(player) + '</td></tr>';
     });
     html += '</tbody></table></div>'; document.getElementById("bench").innerHTML = html;
 }
@@ -347,12 +355,22 @@ function finishWaiverUI(){waiverButton.disabled=false;cancelWaiverButton.disable
 cancelWaiverButton.addEventListener("click",function(){if(!activeWaiverJob)return;cancelWaiverButton.disabled=true;fetch(window.location.origin+"/api/v1/waivers/cancel/"+activeWaiverJob,{method:"POST"});});
 function renderWaivers(w) {
     var moves=w.moves||[];
-    var html='<div class="section-title"><h2>Waiver Upgrades</h2><span>Conservative current-week moves; rest-of-season value is not yet modeled</span></div>';
-    if(!moves.length){html+='<div class="card"><div class="label">Recommendation</div><div class="value small">No positive current-week waiver upgrade found.</div></div>';document.getElementById("waiverResults").innerHTML=html;return;}
-    html+='<div class="summary">'+card("Recommended Moves",moves.length)+card("Projected Candidates",w.available_projected_count||w.evaluated_candidates||0)+card("Final Optimal Points",formatNumber(w.final_optimal_team_points||0))+card("Objective","Median","small")+'</div>'+
-      '<div class="table-shell"><table><thead><tr><th>Move</th><th>Pick Up</th><th>Pos</th><th>Drop</th><th>Pos</th><th>Pickup Median</th><th>Drop Median</th><th>Starting Lineup Gain</th><th>Starter Replaced</th><th>Drop Location</th><th>Starting Lineup Changes</th><th>Candidate Status</th><th>Teammate Injury Impact</th><th>Depth Promotion</th><th>Role Change</th><th>Opportunity</th><th>ROS Value</th></tr></thead><tbody>';
-    moves.forEach(function(m,i){var a=m.pickup||{},d=m.drop||{};html+='<tr><td>#'+(i+1)+'</td><td class="player-name">'+escapeHtml(a.name||"Unknown")+'</td><td><span class="pos">'+escapeHtml(a.position||"—")+'</span></td><td class="player-name">'+escapeHtml(d.name||"Unknown")+'</td><td><span class="pos">'+escapeHtml(d.position||"—")+'</span></td><td class="points">'+formatNumber(a.median_fantasy_points)+'</td><td class="points">'+formatNumber(d.median_fantasy_points)+'</td><td class="points">+'+formatNumber(m.team_points_gain)+'</td><td>'+escapeHtml((m.starter_replaced||[]).map(function(x){return x.name||"Open starter slot";}).join(', ')||'Open starter slot')+'</td><td>'+escapeHtml(m.drop_was_starter?'Starter':'Bench')+'</td><td>'+escapeHtml((m.lineup_changes||[]).map(function(c){return c.slot+': '+(c.previous_starter||'Open')+' → '+(c.new_starter||'Open');}).join('; ')||'None')+'</td><td>'+escapeHtml(((a.waiver_role_intel||{}).injury_status)||"Unknown")+'</td><td>'+escapeHtml((((a.waiver_role_intel||{}).teammate_injuries)||[]).map(function(x){return (x.name||"Unknown")+" ("+(x.status||"out")+")";}).join(", ")||"None detected")+'</td><td>'+(((a.waiver_role_intel||{}).depth_chart_promotion)?"Yes":"No")+'</td><td>'+escapeHtml(((a.waiver_role_intel||{}).role_change)||"—")+'</td><td>'+escapeHtml(String(((a.waiver_role_intel||{}).opportunity_multiplier)||1)+"x")+'</td><td>'+escapeHtml(((a.waiver_role_intel||{}).rest_of_season_value)||"Baseline")+'</td></tr>';});
-    html+='</tbody></table></div>';document.getElementById("waiverResults").innerHTML=html;
+    var html='<div class="section-title"><h2>Waiver Upgrades</h2><span>Starting-lineup improvements; future-season drop cost not yet modeled</span></div>';
+    if(!moves.length){html+='<div class="card"><div class="label">Recommendation</div><div class="value small">No positive current-week starting-lineup upgrade found.</div></div>';document.getElementById("waiverResults").innerHTML=html;return;}
+    html+='<div class="summary">'+card("Potential Moves",moves.length)+card("Projected Candidates",w.available_projected_count||w.evaluated_candidates||0)+card("Final Optimal Points",formatNumber(w.final_optimal_team_points||0))+card("Objective","Median","small")+'</div>'+
+      '<div class="table-shell"><table><thead><tr><th>Pickup</th><th>Roster Drop</th><th>New Starter</th><th>Projected Gain</th><th>Decision</th></tr></thead><tbody>';
+    moves.forEach(function(m){
+      var a=m.pickup||{}, d=m.drop||{};
+      var starter=m.new_starter||a.name||'Unknown';
+      var decision=m.decision||'Review — future value not modeled';
+      var reason=m.decision_reason||'Future-week value of the dropped player has not been evaluated.';
+      html+='<tr><td class="player-name">'+escapeHtml(a.name||'Unknown')+' ('+escapeHtml(a.position||'—')+')</td>'+
+        '<td class="player-name">'+escapeHtml(d.name||'Unknown')+' ('+escapeHtml(d.position||'—')+')</td>'+
+        '<td>'+escapeHtml(starter)+'</td><td class="points">+'+formatNumber(m.team_points_gain)+'</td>'+
+        '<td title="'+escapeHtml(reason)+'">'+escapeHtml(decision)+'</td></tr>';
+    });
+    html+='</tbody></table></div><p class="muted" style="margin-top:10px">Advisory only. Current-week lineup gain does not establish that the roster drop is worth making.</p>';
+    document.getElementById("waiverResults").innerHTML=html;
 }
 
 function renderDetails(starters) {

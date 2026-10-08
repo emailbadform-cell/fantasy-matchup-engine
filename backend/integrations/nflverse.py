@@ -24,6 +24,7 @@ class NFLVerseClient:
         self._player_ids_cache = None
         self._player_refresh_attempted = set()
         self._team_refresh_attempted = set()
+        self._published_team_weeks = {}
 
     def _download(self, url, cache_name, force_refresh=False):
         p = CACHE / cache_name
@@ -87,6 +88,7 @@ class NFLVerseClient:
         )
         rows = self._rows(data)
         self._stats_cache[season] = rows
+        self._published_team_weeks.pop(season, None)
         return rows
 
     @staticmethod
@@ -179,12 +181,31 @@ class NFLVerseClient:
             # No scheduled team game in the required week: a bye is not stale data.
             return {"status":"complete_bye", "required_week":required, "latest_week":latest, "complete":True}
         complete = latest >= required
+        if not complete:
+            # A missing individual stat row is not proof the feed is stale.
+            # Confirm the required week was published for this player's TEAM.
+            # This avoids assigning DATA PENDING to inactive/DNP players while
+            # retaining a fail-closed state for genuinely unpublished weeks.
+            try:
+                team_norm = self.normalize_team(team)
+                if season not in self._published_team_weeks:
+                    self._published_team_weeks[season] = {
+                        (str(r.get("week") or ""), self.normalize_team(r.get("recent_team") or r.get("team")))
+                        for r in self.player_stats(season)
+                    }
+                team_week_published = (str(required), team_norm) in self._published_team_weeks[season]
+            except NFLVerseAPIError:
+                team_week_published = False
+            if team_week_published:
+                return {"status":"player_week_unrecorded", "required_week":required,
+                        "latest_week":latest, "complete":True,
+                        "note":"Team weekly statistics are published, but this player has no recorded stats. May be inactive/DNP or have no qualifying production; participation not independently verified."}
         return {
             "status":"complete" if complete else "data_pending",
             "required_week":required,
             "latest_week":latest,
             "complete":complete,
-            "note":None if complete else f"Expected Week {required} history is not yet available from nflverse; projection uses history through Week {latest}."
+            "note":None if complete else f"Team Week {required} statistics not confirmed as published; projection uses player history through Week {latest}."
         }
 
     @staticmethod
