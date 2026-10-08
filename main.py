@@ -20,7 +20,7 @@ from backend.engine.calibration import (
 from backend.engine.optimizer import optimize_lineup
 from backend.engine.waivers import recommend_waiver_moves
 
-MODEL_VERSION = "1.9.15-bye-aware-waivers"
+MODEL_VERSION = "1.9.18-espn-defense-starter-waivers"
 
 LAYERS = [
     "injury_availability", "depth_chart_replacement", "offensive_line", "defensive_front",

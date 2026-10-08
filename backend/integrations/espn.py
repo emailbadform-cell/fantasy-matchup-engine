@@ -15,6 +15,33 @@ class ESPNAPIError(RuntimeError):
 # ESPN proTeamId -> canonical NFL abbreviation
 PRO_TEAMS = {1:"ATL",2:"BUF",3:"CHI",4:"CIN",5:"CLE",6:"DAL",7:"DEN",8:"DET",9:"GB",10:"TEN",11:"IND",12:"KC",13:"LV",14:"LA",15:"MIA",16:"MIN",17:"NE",18:"NO",19:"NYG",20:"NYJ",21:"PHI",22:"ARI",23:"PIT",24:"LAC",25:"SF",26:"SEA",27:"TB",28:"WAS",29:"CAR",30:"JAC",33:"BAL",34:"HOU"}
 POS = {1:"QB",2:"RB",3:"WR",4:"TE",5:"K",16:"DEF"}
+# ESPN uses -16000 - proTeamId for team defenses (e.g. Rams = -16014).
+# Sleeper commonly uses LAR while ESPN's proTeamId 14 is LA.
+DEF_TEAM_ALIASES = {"LA": "LAR", "LAR": "LAR", "JAC": "JAX", "JAX": "JAX", "WSH": "WAS", "WAS": "WAS"}
+
+def canonical_def_team(team):
+    value = str(team or "").upper()
+    return DEF_TEAM_ALIASES.get(value, value)
+
+def espn_defense_team(player_id, pro_team_id=None, name=None):
+    """Resolve an ESPN D/ST from its negative ID even if player metadata is absent."""
+    try:
+        number = int(player_id)
+        if -16034 <= number <= -16001:
+            team = PRO_TEAMS.get(-16000 - number)
+            if team:
+                return canonical_def_team(team)
+    except (ValueError, TypeError):
+        pass
+    try:
+        team = PRO_TEAMS.get(int(pro_team_id))
+        if team:
+            return canonical_def_team(team)
+    except (ValueError, TypeError):
+        pass
+    # Never fuzzy-match a defense to the wrong NFL team.
+    return None
+
 LINEUP_SLOT = {0:"QB",1:"QB",2:"RB",3:"RB_WR",4:"WR",5:"WR_TE",6:"TE",7:"SUPER_FLEX",16:"DEF",17:"K",23:"FLEX"}
 
 # Common ESPN FFL stat IDs. Unknown/custom scoring items are preserved in raw settings.
@@ -153,8 +180,13 @@ class ESPNClient:
             if eid is not None: espn_idx[str(eid)]=(sid,sp)
             gsis=sp.get("gsis_id") or sp.get("gsis")
             if gsis: gsis_idx[str(gsis)]=(sid,sp)
-            if str(sp.get("position") or "").upper() in {"DEF","DST"} and sp.get("team"):
-                team_def_idx[str(sp.get("team")).upper()]=(sid,sp)
+            if str(sp.get("position") or "").upper() in {"DEF","DST"}:
+                # Sleeper's D/ST ID is normally the team abbreviation, even when
+                # its team field is missing or uses a different abbreviation.
+                for value in (sp.get("team"), sid):
+                    key=canonical_def_team(value)
+                    if key in {canonical_def_team(t) for t in PRO_TEAMS.values()}:
+                        team_def_idx[key]=(sid,sp)
         entries=((target.get("roster") or {}).get("entries") or [])
         roster_ids=[]; starter_ids=[]; unresolved=[]; roster_slots={}
         for e in entries:
@@ -162,6 +194,13 @@ class ESPNClient:
             name=ep.get("fullName") or ep.get("displayName")
             team=PRO_TEAMS.get(ep.get("proTeamId")); pos=POS.get(ep.get("defaultPositionId"))
             espn_pid=e.get("playerId") or pool.get("id") or ep.get("id")
+            # Team-defense metadata is often missing from ESPN roster entries.
+            # The lineup slot and negative player ID are sufficient to identify it.
+            if int(e.get("lineupSlotId",20)) == 16 or (espn_pid is not None and str(espn_pid).startswith("-16")):
+                inferred_team=espn_defense_team(espn_pid,ep.get("proTeamId"),name)
+                if inferred_team:
+                    team=inferred_team
+                    pos="DEF"
             candidates=[]
             # Prefer the platform ID crosswalk. It avoids name changes/suffixes and duplicate names.
             if espn_pid is not None and str(espn_pid) in espn_idx:
@@ -174,8 +213,8 @@ class ESPNClient:
                 if gsis and gsis in gsis_idx:
                     candidates=[gsis_idx[gsis]]
             # D/ST names differ between platforms; team+position is the stable identity.
-            if not candidates and pos=="DEF" and team in team_def_idx:
-                candidates=[team_def_idx[team]]
+            if not candidates and pos=="DEF" and canonical_def_team(team) in team_def_idx:
+                candidates=[team_def_idx[canonical_def_team(team)]]
             # Exact normalized names, including suffix-insensitive variants.
             if not candidates:
                 for nv in self._name_variants(name):

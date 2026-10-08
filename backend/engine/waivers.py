@@ -106,6 +106,11 @@ def recommend_waiver_moves(roster, candidates, slots, max_moves=12, min_gain=0.0
             # One exact optimization for this pickup. No add x drop Cartesian product.
             opt=optimize_lineup(current+[add],slots)
             evaluated += 1
+            # A waiver candidate must actually enter the optimized starting lineup.
+            # Adding a bench-only player never qualifies as a weekly upgrade.
+            if _pid(add) not in _assigned_ids(opt):
+                if progress and (idx==1 or idx%5==0 or idx==total): progress(idx,total,move_idx)
+                continue
             drop=_best_drop_without_reopt(current,opt,add,slots)
             if drop is not None:
                 new_points=float(opt.get('median_points') or 0.0)
@@ -119,17 +124,25 @@ def recommend_waiver_moves(roster, candidates, slots, max_moves=12, min_gain=0.0
                     trial=[x for x in current if _pid(x)!=_pid(d)]+[add]
                     o=optimize_lineup(trial,slots)
                     if o.get('filled_slots',0)<baseline.get('filled_slots',0): continue
+                    if _pid(add) not in _assigned_ids(o): continue
                     gain=float(o.get('median_points') or 0.0)-baseline_points
                     cand=(gain,_median(add)-_median(d),add,d,o)
                     if gain>=min_gain and (best is None or cand[:2]>best[:2]): best=cand
             if progress and (idx==1 or idx%5==0 or idx==total): progress(idx,total,move_idx)
         if best is None: break
         gain,raw_gain,add,drop,opt=best
-        moves.append({'pickup':_brief(add),'drop':_brief(drop),'projected_team_points_before':round(baseline_points,2),'projected_team_points_after':round(float(opt.get('median_points') or 0.0),2),'team_points_gain':round(gain,2),'player_median_difference':round(raw_gain,2),'lineup_changes':_lineup_changes(baseline,opt),'recommendation_type':'current_week_only','rest_of_season_assessed':False,'bye_protection_applied':True,'warning':'Future-week projections are not yet available; do not interpret this as a rest-of-season upgrade.'})
+        prior_starters=_assigned_ids(baseline)
+        next_starters=_assigned_ids(opt)
+        replaced=[x for x in baseline.get('assignment',[]) if str(x.get('player_id')) not in next_starters]
+        # The pickup can fill an open starter slot instead of replacing a starter.
+        if _pid(add) not in next_starters:
+            break
+        pickup_assignment=next((x for x in opt.get('assignment',[]) if str(x.get('player_id'))==_pid(add)),{})
+        moves.append({'pickup':_brief(add),'drop':_brief(drop),'projected_team_points_before':round(baseline_points,2),'projected_team_points_after':round(float(opt.get('median_points') or 0.0),2),'team_points_gain':round(gain,2),'player_median_difference':round(raw_gain,2),'lineup_changes':_lineup_changes(baseline,opt),'starter_replaced':[{'player_id':x.get('player_id'),'name':x.get('name'),'position':x.get('position')} for x in replaced],'pickup_starting_slot':pickup_assignment.get('slot'),'drop_was_starter':_pid(drop) in prior_starters,'gain_basis':'optimized_starting_lineup_only','recommendation_type':'current_week_only','rest_of_season_assessed':False,'bye_protection_applied':True,'warning':'Future-week projections are not yet available; do not interpret this as a rest-of-season upgrade.'})
         current=[x for x in current if _pid(x)!=_pid(drop)]+[add]
         available=[x for x in available if _pid(x)!=_pid(add)]
         baseline=opt; baseline_points=float(opt.get('median_points') or 0.0)
-    return {'moves':moves,'move_count':len(moves),'final_optimal_team_points':round(baseline_points,2),'evaluated_candidates':len(candidates or []),'lineup_optimizations':evaluated,'evaluation_mode':'cached_single_add_bye_protected','rest_of_season_assessed':False,'lineup_slot_audit':flex_audit}
+    return {'moves':moves,'move_count':len(moves),'final_optimal_team_points':round(baseline_points,2),'evaluated_candidates':len(candidates or []),'lineup_optimizations':evaluated,'evaluation_mode':'starter_entry_required_bye_protected','rest_of_season_assessed':False,'lineup_slot_audit':flex_audit}
 
 
 def _brief(p):
