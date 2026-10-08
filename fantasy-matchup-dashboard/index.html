@@ -233,7 +233,7 @@ function loadPrediction() {
             if (!starters.length) throw new Error("The API returned zero starters.");
             lastPrediction = data;
             renderSummary(data, starters);
-            renderTable(starters);
+            renderTable(starters, data.team.lineup_slots || [], data.platform);
             renderBench((data.team && data.team.bench) || []);
             document.getElementById("optimal").innerHTML = "";
             renderDetails(starters);
@@ -252,10 +252,12 @@ function loadPrediction() {
         });
 }
 function renderSummary(data, starters) {
-    var total = 0, usable = 0;
+    var total = 0, highTotal = 0, usable = 0;
     starters.forEach(function(player) {
         var points = getPoints(player);
-        if (points !== null && !isNaN(Number(points))) { total += Number(points); usable++; }
+        if (points !== null && points !== undefined && Number.isFinite(Number(points))) { total += Number(points); usable++; }
+        var high = (player.projection || {}).high;
+        if (high !== null && high !== undefined && Number.isFinite(Number(high))) highTotal += Number(high);
     });
     var version = "Unknown";
     if (data.versioning && data.versioning.model_version) version = data.versioning.model_version;
@@ -263,7 +265,7 @@ function renderSummary(data, starters) {
 
     document.getElementById("summary").innerHTML =
         '<div class="summary">' +
-        card("Projected Team Points", formatNumber(total)) +
+        card("Projected Team Points (Median–High)", formatNumber(total) + " – " + formatNumber(highTotal)) +
         card("Starters", starters.length) +
         card("Usable Projections", usable + " / " + starters.length) +
         card("Model Version", escapeHtml(version), "small") +
@@ -280,16 +282,45 @@ function playerDataLabel(player) {
     if (q.fallback_used) return '<span title="Projection used model fallback inputs">Limited history</span>';
     return 'Current';
 }
-function renderTable(starters) {
+// Use the league's actual starter-slot layout, never alphabetical player order.
+// ESPN supplies each occupied slot's ID; Sleeper starters are returned in
+// league roster-position order (including repeated FLEX/SUPER_FLEX slots).
+var ESPN_STARTER_SLOT_NAMES = {0:"QB",1:"QB",2:"RB",3:"RB_WR",4:"WR",5:"WR_TE",6:"TE",7:"SUPER_FLEX",16:"DEF",17:"K",23:"FLEX"};
+function normalizedStarterSlot(slot) {
+    var s = String(slot == null ? "" : slot).toUpperCase();
+    if (s === "SUPERFLEX" || s === "OP" || s === "SUPER_FLEX") return "SUPER_FLEX";
+    if (s === "W/R/T" || s === "WRRBTE" || s === "FLEX") return "FLEX";
+    return s;
+}
+function starterSlotRank(slot) {
+    return ({QB:0,RB:1,WR:2,TE:3,RB_WR:4,WR_TE:5,FLEX:6,SUPER_FLEX:7,K:8,DEF:9,DST:9})[normalizedStarterSlot(slot)] ?? 50;
+}
+function lineupDisplayRows(starters, leagueSlots, platform) {
+    var slots = (leagueSlots || []).map(normalizedStarterSlot);
+    var result = starters.map(function(player, index) {
+        var espnId = player.espn_lineup_slot_id;
+        var slot = platform === "espn" && espnId != null
+            ? ESPN_STARTER_SLOT_NAMES[Number(espnId)]
+            : (platform === "sleeper" && slots.length === starters.length ? slots[index] : null);
+        slot = normalizedStarterSlot(slot || player.position || "");
+        return {player:player, slot:slot, index:index};
+    });
+    // Stable sort keeps repeated RB/WR/FLEX slots in the original lineup order.
+    result.sort(function(a,b) { return starterSlotRank(a.slot)-starterSlotRank(b.slot) || a.index-b.index; });
+    return result;
+}
+function renderTable(starters, leagueSlots, platform) {
     var html =
-        '<div class="section-title"><h2>Starting Lineup</h2><span>Low / median / high fantasy-point outcomes</span></div>' +
+        '<div class="section-title"><h2>Starting Lineup</h2><span>League slot order · Low / median / high fantasy-point outcomes</span></div>' +
         '<div class="table-shell"><table><thead><tr>' +
-        '<th>Pos</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data</th>' +
+        '<th>Slot</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data</th>' +
         '</tr></thead><tbody>';
-
-    starters.forEach(function(player) {
+    lineupDisplayRows(starters, leagueSlots, platform).forEach(function(entry) {
+        var player = entry.player;
+        var slotLabel = entry.slot.replace(/_/g," ");
+        if (entry.slot !== normalizedStarterSlot(player.position)) slotLabel += ' (' + String(player.position || '—') + ')';
         html += '<tr>' +
-            '<td><span class="pos">' + escapeHtml(player.position || "—") + '</span></td>' +
+            '<td><span class="pos">' + escapeHtml(slotLabel) + '</span></td>' +
             '<td class="player-name">' + escapeHtml(player.name || "Unknown") + '</td>' +
             '<td>' + escapeHtml(player.team || "—") + '</td>' +
             '<td class="matchup">vs ' + escapeHtml(player.opponent || "—") + '</td>' +
@@ -302,7 +333,6 @@ function renderTable(starters) {
     html += '</tbody></table></div>';
     document.getElementById("table").innerHTML = html;
 }
-
 function renderBench(bench) {
     if (!bench.length) { document.getElementById("bench").innerHTML = ""; return; }
     var html = '<div class="section-title"><h2>Bench</h2><span>Current-week projections</span></div>' +
