@@ -282,31 +282,38 @@ function playerDataLabel(player) {
     if (q.fallback_used) return '<span title="Projection used model fallback inputs">Limited history</span>';
     return 'Current';
 }
-// Use the league's actual starter-slot layout, never alphabetical player order.
-// ESPN supplies each occupied slot's ID; Sleeper starters are returned in
-// league roster-position order (including repeated FLEX/SUPER_FLEX slots).
+// Slots belong to players, not to their position in the projected roster array.
+// Sleeper: starting_slot is assigned by matching matchup starter IDs to the
+// league's ordered roster positions in the backend. Never zip roster rows to slots.
+// ESPN: retain each ESPN roster entry's actual lineup-slot ID.
 var ESPN_STARTER_SLOT_NAMES = {0:"QB",1:"QB",2:"RB",3:"RB_WR",4:"WR",5:"WR_TE",6:"TE",7:"SUPER_FLEX",16:"DEF",17:"K",23:"FLEX"};
 function normalizedStarterSlot(slot) {
     var s = String(slot == null ? "" : slot).toUpperCase();
-    if (s === "SUPERFLEX" || s === "OP" || s === "SUPER_FLEX") return "SUPER_FLEX";
-    if (s === "W/R/T" || s === "WRRBTE" || s === "FLEX") return "FLEX";
+    if (s === "SUPERFLEX" || s === "OP") return "SUPER_FLEX";
+    if (s === "W/R/T" || s === "WRRBTE") return "FLEX";
     return s;
 }
 function starterSlotRank(slot) {
     return ({QB:0,RB:1,WR:2,TE:3,RB_WR:4,WR_TE:5,FLEX:6,SUPER_FLEX:7,K:8,DEF:9,DST:9})[normalizedStarterSlot(slot)] ?? 50;
 }
 function lineupDisplayRows(starters, leagueSlots, platform) {
-    var slots = (leagueSlots || []).map(normalizedStarterSlot);
     var result = starters.map(function(player, index) {
         var espnId = player.espn_lineup_slot_id;
-        var slot = platform === "espn" && espnId != null
-            ? ESPN_STARTER_SLOT_NAMES[Number(espnId)]
-            : (platform === "sleeper" && slots.length === starters.length ? slots[index] : null);
-        slot = normalizedStarterSlot(slot || player.position || "");
-        return {player:player, slot:slot, index:index};
+        var actualSlot = player.starting_slot || (platform === "espn" && espnId != null
+            ? ESPN_STARTER_SLOT_NAMES[Number(espnId)] : null);
+        // If slot metadata is missing, use the player's own position rather
+        // than manufacturing a slot label from an unrelated array index.
+        var slot = normalizedStarterSlot(actualSlot || player.position || "");
+        return {player:player, slot:slot, index:index,
+                originalSlotIndex:Number.isInteger(player.starting_slot_index) ? player.starting_slot_index : null};
     });
-    // Stable sort keeps repeated RB/WR/FLEX slots in the original lineup order.
-    result.sort(function(a,b) { return starterSlotRank(a.slot)-starterSlotRank(b.slot) || a.index-b.index; });
+    result.sort(function(a,b) {
+        var rank = starterSlotRank(a.slot)-starterSlotRank(b.slot);
+        if (rank) return rank;
+        if (a.originalSlotIndex !== null && b.originalSlotIndex !== null)
+            return a.originalSlotIndex-b.originalSlotIndex;
+        return a.index-b.index;
+    });
     return result;
 }
 function renderTable(starters, leagueSlots, platform) {

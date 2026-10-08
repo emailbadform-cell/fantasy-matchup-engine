@@ -6,6 +6,29 @@ from .qb_monte_carlo import simulate_qb_stats
 DEF_TEAMS = {"ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB","HOU","IND","JAX","KC","LV","LAC","LA","MIA","MIN","NE","NO","NYG","NYJ","PHI","PIT","SF","SEA","TB","TEN","WAS"}
 
 
+def sleeper_starter_slot_map(starter_ids, league_slots):
+    """Bind each Sleeper matchup starter ID to its own league slot.
+
+    The roster player list has no positional relationship to league slots.
+    Sleeper matchup `starters` *does*: it follows active `roster_positions`,
+    including vacant placeholders, which must keep their indices.
+    """
+    slots=[str(s).upper() for s in (league_slots or [])
+           if str(s).upper() not in {"BN", "BENCH", "IR", "RESERVE", "TAXI"}]
+    ids=list(starter_ids or [])
+    if not slots or len(slots) != len(ids):
+        return {}
+    mapping={}
+    for index,(pid,slot) in enumerate(zip(ids,slots)):
+        if pid is None or str(pid) in {"0", "", "None"}:
+            continue
+        key=str(pid)
+        if key in mapping:
+            return {}  # ambiguous starter IDs must not receive guessed labels
+        mapping[key]={"starting_slot":slot,"starting_slot_index":index}
+    return mapping
+
+
 class PredictionEngine:
     """Pregame fantasy prediction pipeline with explicit single-owner feature architecture."""
 
@@ -474,6 +497,8 @@ class PredictionEngine:
         starter_set={str(x) for x in starters}
         roster=list(target.get("players") or starters)
         reserve_set={str(x) for x in (target.get("reserve") or [])}
+        raw_positions=list(league.get("roster_positions") or [])
+        starter_slot_by_id=sleeper_starter_slot_map(starters,raw_positions)
         all_results=[]
         for pid in roster:
             p=self._resolve_player(players,pid); team=normalize_team(p.get("team") or p.get("nfl_team") or pid); game=self.nfl.team_game(season,week,team)
@@ -484,6 +509,8 @@ class PredictionEngine:
                 row=self._project_player(p,players,game,opponent,season,week,settings,starters)
             spid=str(pid)
             row["lineup_status"]="starter" if spid in starter_set else ("ir" if spid in reserve_set else "bench")
+            if row["lineup_status"] == "starter":
+                row.update(starter_slot_by_id.get(spid, {}))
             all_results.append(row)
         results=[x for x in all_results if x.get("lineup_status")=="starter"]
         bench=[x for x in all_results if x.get("lineup_status")=="bench"]
