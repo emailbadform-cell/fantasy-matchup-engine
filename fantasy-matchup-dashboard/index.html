@@ -364,7 +364,7 @@ function optimizeLineup() {
 }
 function renderOptimal(opt) {
     var rows=opt.assignment || []; var html='<div class="section-title"><h2>Optimal Lineup</h2><span>Maximizes current-week median projected points</span></div>' +
-      '<div class="summary">' + card("Optimal Team Points", formatNumber(opt.median_points || 0)) + card("Filled Slots", String(opt.filled_slots == null ? rows.length : opt.filled_slots)) + card("Open Slots", String(opt.open_slots || 0)) + card("Objective", "Median", "small") + '</div>' +
+      '<div class="summary">' + card("Optimal Team Points (Median–High)", formatNumber(opt.median_points || 0) + " – " + (opt.high_points == null ? "N/A" : formatNumber(opt.high_points))) + card("Filled Slots", String(opt.filled_slots == null ? rows.length : opt.filled_slots)) + card("Open Slots", String(opt.open_slots || 0)) + card("Objective", "Median", "small") + '</div>' +
       '<div class="table-shell"><table><thead><tr><th>Slot</th><th>Pos</th><th>Player</th><th>Team</th><th>Median</th></tr></thead><tbody>';
     rows.forEach(function(x){ html += '<tr><td><span class="pos">' + escapeHtml(x.slot) + '</span></td><td>' + escapeHtml(x.position || "—") + '</td><td class="player-name">' + escapeHtml(x.name || "Unknown") + '</td><td>' + escapeHtml(x.team || "—") + '</td><td class="points">' + formatNumber(x.median_fantasy_points) + '</td></tr>'; });
     (opt.open_slot_names || []).forEach(function(slot){ html += '<tr><td><span class="pos">' + escapeHtml(slot) + '</span></td><td>—</td><td class="player-name"><strong>OPEN — no eligible player</strong></td><td>—</td><td class="points">0.00</td></tr>'; });

@@ -68,10 +68,15 @@ def optimize_lineup(players, slots):
             "position": p.get("position"),
             "team": p.get("team"),
             "median_fantasy_points": p.get("projection", {}).get("median_fantasy_points", 0.0),
+            "high_fantasy_points": p.get("projection", {}).get("high_fantasy_points"),
         })
+    high_values = [a.get("high_fantasy_points") for a in assignment]
+    # A missing high projection is unknown, not zero: never invent an upper bound.
+    high_total = round(sum(float(v) for v in high_values), 4) if all(v is not None for v in high_values) else None
     open_slot_names = [slot for i, slot in enumerate(slots) if i not in filled_indices]
     return {
         "median_points": round(total, 4),
+        "high_points": high_total,
         "assignment": assignment,
         "filled_slots": filled,
         "open_slots": len(open_slot_names),
