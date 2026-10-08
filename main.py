@@ -2,6 +2,7 @@ from pathlib import Path
 import threading, time, uuid
 
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -180,6 +181,81 @@ def model_gate():
         "requires_data_propagation": True,
         "note": "Functional completeness describes the primary PredictionEngine path; legacy architecture contracts are not counted as wired predictive engines.",
     }
+
+
+class IndividualProjectionRequest(BaseModel):
+    names: list[str] = Field(min_length=1, max_length=20)
+    week: int = Field(ge=1, le=18)
+    season: int = 2026
+    platform: str = "standard"
+    league_id: str | None = None
+    team_ref: str | None = None
+    scoring: str = "ppr"
+
+
+def _individual_name_key(name):
+    import re
+    return re.sub(r"[^a-z0-9]", "", str(name or "").lower())
+
+
+def _find_individual_player(universe, query):
+    import re
+    q = str(query).strip()
+    # Optional team qualifier: 'Courtland Sutton, DEN' or 'Courtland Sutton (DEN)'.
+    match = re.match(r"^(.*?)\s*(?:\((\w{2,3})\)|,\s*(\w{2,3}))$", q)
+    name, team = (match.group(1), (match.group(2) or match.group(3)).upper()) if match else (q, None)
+    key = _individual_name_key(name)
+    matches=[]
+    for pid, player in universe.items():
+        if not isinstance(player,dict): continue
+        names = [player.get("full_name"),player.get("name"),player.get("first_name","")+" "+player.get("last_name","")]
+        if key not in {_individual_name_key(n) for n in names}: continue
+        if team and str(player.get("team") or "").upper()!=team: continue
+        if str(player.get("position") or "").upper() not in {"QB","RB","WR","TE","K","DEF","DST"}: continue
+        matches.append((pid,player))
+    # Never arbitrarily select between multiple distinct identities.
+    return matches
+
+
+@app.post("/api/v1/players/project")
+def project_individual_players(request: IndividualProjectionRequest):
+    if request.platform not in {"standard","sleeper","espn"}: raise HTTPException(400,"Invalid platform")
+    if request.scoring not in {"ppr","half","standard"}: raise HTTPException(400,"Invalid scoring preset")
+    if request.platform != "standard" and not request.league_id:
+        raise HTTPException(400,"League ID required for league-specific scoring")
+    try:
+        engine=_engine()
+        universe=engine.sleeper.get_players()
+        if request.platform == "sleeper":
+            settings=engine.sleeper.get_scoring_settings(request.league_id) or {}
+        elif request.platform == "espn":
+            if not request.team_ref or not str(request.team_ref).isdigit():
+                raise HTTPException(400,"ESPN Team ID required for league scoring")
+            ctx=ESPNClient(season=request.season).normalized(request.league_id,int(request.team_ref),request.week)
+            settings=ctx.get("scoring_settings") or {}
+        else:
+            settings={"rec": {"ppr":1.0,"half":0.5,"standard":0.0}[request.scoring]}
+        output=[]
+        for raw in request.names:
+            name=str(raw).strip()
+            if not name: continue
+            matches=_find_individual_player(universe,name)
+            if len(matches)!=1:
+                output.append({"query":name,"status":"ambiguous" if matches else "not_found", "matches":[{"name":p.get("full_name") or p.get("name"),"team":p.get("team"),"position":p.get("position")} for _,p in matches[:8]]})
+                continue
+            pid,player=matches[0]
+            candidate=dict(player,player_id=pid)
+            try:
+                projection=engine.project_candidate(candidate,universe,request.season,request.week,settings)
+                if projection is None:
+                    output.append({"query":name,"status":"no_game","name":player.get("full_name") or player.get("name")})
+                else:
+                    output.append({"query":name,"status":"ok","player":projection})
+            except Exception as exc:
+                output.append({"query":name,"status":"error","detail":str(exc)[:240]})
+        return {"season":request.season,"week":request.week,"platform":request.platform,"scoring":request.scoring if request.platform=="standard" else "league","players":output}
+    except HTTPException: raise
+    except (SleeperAPIError, ESPNAPIError, NFLVerseAPIError) as exc: raise HTTPException(502,str(exc)) from exc
 
 
 @app.get("/api/v1/fantasy/espn/league/{league_id}/team/{team_id}/week/{week}/prediction")

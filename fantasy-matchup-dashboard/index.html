@@ -159,6 +159,16 @@ pre { margin:0; padding:12px; border-top:1px solid var(--line); max-height:330px
     </div>
 
     <div id="status">Ready to load a projection.</div><div id="waiverProgress" style="display:none;margin:-10px 0 22px;padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(18,24,36,.62)"><div style="display:flex;justify-content:space-between;gap:12px"><strong id="waiverStage">Preparing…</strong><span id="waiverCount" class="muted"></span></div><div style="height:10px;background:#0d131e;border-radius:999px;overflow:hidden;margin:9px 0"><div id="waiverBar" style="height:100%;width:0%;background:linear-gradient(90deg,#6879ff,#8794ff);transition:width .25s"></div></div><div id="waiverTiming" style="color:var(--muted);font-size:12px"></div></div>
+    <section class="card" style="margin-bottom:18px;padding:18px">
+      <h2 style="margin:0 0 10px">Individual Player Projections</h2>
+      <p class="muted" style="margin:0 0 12px">Enter one player per line (or separate names with semicolons). Compare up to 20 players using the same FME prediction engine.</p>
+      <textarea id="individualNames" rows="3" placeholder="Courtland Sutton (DEN)&#10;Roman Wilson (PIT)" style="width:100%;padding:12px;border-radius:9px;background:#0d131e;color:inherit;border:1px solid var(--line);resize:vertical"></textarea>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
+        <label for="individualScoring">Without league:</label><select id="individualScoring"><option value="ppr">PPR</option><option value="half">Half PPR</option><option value="standard">Standard</option></select>
+        <button id="projectIndividuals">Project Players</button><span class="muted" id="individualStatus"></span>
+      </div>
+      <div id="individualResults" style="margin-top:12px"></div>
+    </section>
     <div id="summary"></div>
     <div id="table"></div>
     <div id="optimal"></div>
@@ -452,6 +462,38 @@ function detailBlock(title, value) {
     return '<details><summary>' + escapeHtml(title) + '</summary><pre>' +
         escapeHtml(JSON.stringify(value, null, 2)) + '</pre></details>';
 }
+
+function projectIndividualPlayers() {
+    var raw=document.getElementById("individualNames").value;
+    var names=raw.split(/[\n;]+/).map(function(x){return x.trim();}).filter(Boolean);
+    var status=document.getElementById("individualStatus"), button=document.getElementById("projectIndividuals");
+    if(!names.length || names.length>20){status.textContent="Enter 1–20 player names.";return;}
+    var platform=sourceSelect.value, league=document.getElementById("league").value.trim(), team=document.getElementById("username").value.trim();
+    // League settings are only used after a successful league prediction, avoiding stale or mismatched credentials.
+    var useLeague=lastPrediction && lastPrediction.platform===platform && String(lastPrediction.league_id)===league &&
+        String(lastPrediction.team.username)===team;
+    var payload={names:names,week:Number(document.getElementById("week").value),season:2026,
+        platform:useLeague?platform:"standard",scoring:document.getElementById("individualScoring").value};
+    if(useLeague){payload.league_id=league;payload.team_ref=team;}
+    button.disabled=true;status.textContent="Running projections…";
+    fetch("/api/v1/players/project",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+      .then(function(r){return r.json().then(function(j){if(!r.ok)throw Error(j.detail||"Request failed");return j;});})
+      .then(function(data){
+        var html='<div class="muted" style="margin-bottom:8px">Scoring: '+escapeHtml(data.platform==="standard"?data.scoring.toUpperCase():data.platform.toUpperCase()+" league")+'</div>';
+        html+='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Player</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data status</th></tr></thead><tbody>';
+        (data.players||[]).forEach(function(item){
+          if(item.status!=="ok"){
+            html+='<tr><td>'+escapeHtml(item.query)+'</td><td colspan="5">'+escapeHtml(item.status+(item.detail?": "+item.detail:""))+'</td></tr>';return;
+          }
+          var p=item.player,pr=p.projection||{},dq=p.data_quality||{};
+          html+='<tr><td>'+escapeHtml(p.name)+' ('+escapeHtml(p.team)+', '+escapeHtml(p.position)+')</td><td>'+escapeHtml(p.opponent||"—")+'</td><td>'+formatNumber(pr.low)+'</td><td><strong>'+formatNumber(pr.median_fantasy_points)+'</strong></td><td>'+formatNumber(pr.high)+'</td><td>'+escapeHtml(dq.projection_status||dq.status||"—")+'</td></tr>';
+        });
+        document.getElementById("individualResults").innerHTML=html+'</tbody></table></div>';
+        status.textContent="Finished.";
+      }).catch(function(err){status.textContent="Projection failed: "+err.message;})
+      .finally(function(){button.disabled=false;});
+}
+document.getElementById("projectIndividuals").addEventListener("click",projectIndividualPlayers);
 
 updateSourceUI();
 loadButton.addEventListener("click", loadPrediction);
