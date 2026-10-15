@@ -34,5 +34,5 @@ def test_open_slot_is_named_when_truly_unfillable():
     out=optimize_lineup([p("rb","RB",10)], ["QB","RB","SUPER_FLEX"])
     assert out["filled_slots"] == 1
     assert out["open_slots"] == 2
-    assert out["open_slot_names"] == ["QB","RB"]
+    assert out["open_slot_names"] == ["QB","SUPER_FLEX"]
     assert len(out["open_slot_names"]) == out["open_slots"]

@@ -35,5 +35,27 @@ def test_history_status_treats_bye_as_complete(monkeypatch):
 def test_history_status_marks_expected_missing_week_pending(monkeypatch):
     c=NFLVerseClient()
     monkeypatch.setattr(c,"team_game",lambda season,week,team: {"week":str(week),"home_team":team})
+    # Isolate the source snapshot: never consult the installed real 2026 CSV.
+    monkeypatch.setattr(c,"player_stats",lambda season: [{"week":"1","recent_team":"DET"},{"week":"2","recent_team":"DET"},{"week":"3","recent_team":"DET"}])
     x=c.player_history_status(2026,"DET",[{"week":"1"},{"week":"2"},{"week":"3"}],5)
+    assert x["source_status"] == "publication_unverified"
     assert x["complete"] is False and x["status"]=="data_pending" and x["required_week"]==4
+
+
+def test_missing_player_week_with_published_team_week_is_not_source_pending(monkeypatch):
+    c=NFLVerseClient()
+    monkeypatch.setattr(c,"team_game",lambda season,week,team: {"week":str(week),"home_team":team})
+    monkeypatch.setattr(c,"player_stats",lambda season: [{"week":"4","recent_team":"DET","player_id":"other"}])
+    result=c.player_history_status(2026,"DET",[{"week":"1"},{"week":"2"},{"week":"3"}],5)
+    assert result["status"] == "player_week_unrecorded"
+    assert result["source_status"] == "team_week_present"
+    assert result["complete"] is True
+
+def test_source_status_does_not_claim_nflverse_publication_lag(monkeypatch):
+    c=NFLVerseClient()
+    monkeypatch.setattr(c,"team_game",lambda season,week,team: {"week":str(week),"home_team":team})
+    monkeypatch.setattr(c,"player_stats",lambda season: [])
+    result=c.player_history_status(2026,"DET",[{"week":"3"}],5)
+    assert result["status"] == "data_pending"
+    assert result["source_status"] == "publication_unverified"
+    assert "not confirmed" in result["note"]

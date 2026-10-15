@@ -157,29 +157,21 @@ class NFLVerseClient:
                 out.append(r)
             return out
 
-        rows = self.player_stats(season)
-        out = select(rows)
-        if through_week is not None and (player_id or player_name):
-            required = max(0, int(through_week) - 1)
-            key = self._player_refresh_key(season, player_id, player_name, required)
-            if self._max_week(out) < required and key not in self._player_refresh_attempted:
-                self._player_refresh_attempted.add(key)
-                try:
-                    rows = self.player_stats(season, force_refresh=True)
-                    out = select(rows)
-                except NFLVerseAPIError:
-                    pass
-        return out
+        # The season/week dataset has already been checked by
+        # _ensure_player_history_fresh. A missing player-week record is not
+        # evidence of an outdated dataset (bye, DNP, or ID mismatch are common).
+        # Never re-download the entire season for an individual player.
+        return select(self.player_stats(season))
 
     def player_history_status(self, season, team, rows, through_week):
         required = max(0, int(through_week or 0) - 1)
         latest = self._max_week(rows)
         if required <= 0:
-            return {"status":"complete", "required_week":required, "latest_week":latest, "complete":True}
+            return {"status":"complete", "required_week":required, "latest_week":latest, "complete":True, "source_status":"not_required"}
         game = self.team_game(season, required, team) if team else None
         if not game:
             # No scheduled team game in the required week: a bye is not stale data.
-            return {"status":"complete_bye", "required_week":required, "latest_week":latest, "complete":True}
+            return {"status":"complete_bye", "required_week":required, "latest_week":latest, "complete":True, "source_status":"not_required"}
         complete = latest >= required
         if not complete:
             # A missing individual stat row is not proof the feed is stale.
@@ -198,13 +190,14 @@ class NFLVerseClient:
                 team_week_published = False
             if team_week_published:
                 return {"status":"player_week_unrecorded", "required_week":required,
-                        "latest_week":latest, "complete":True,
+                        "latest_week":latest, "complete":True, "source_status":"team_week_present",
                         "note":"Team weekly statistics are published, but this player has no recorded stats. May be inactive/DNP or have no qualifying production; participation not independently verified."}
         return {
             "status":"complete" if complete else "data_pending",
             "required_week":required,
             "latest_week":latest,
             "complete":complete,
+            "source_status":"player_record_present" if complete else "publication_unverified",
             "note":None if complete else f"Team Week {required} statistics not confirmed as published; projection uses player history through Week {latest}."
         }
 

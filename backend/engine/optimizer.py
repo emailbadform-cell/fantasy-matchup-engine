@@ -44,25 +44,46 @@ def optimize_lineup(players, slots):
     players = [p for p in players if p.get("projection", {}).get("median_fantasy_points") is not None]
     slots = [normalize_slot(s) for s in (slots or [])]
 
-    @lru_cache(maxsize=None)
-    def solve(i, used_mask):
-        if i >= len(slots):
-            return (0, 0.0, ())
-        # Open is a fallback only. Lexicographic comparison below always prefers
-        # more filled slots over points, even when a player's median is negative.
-        best = solve(i + 1, used_mask)
-        slot = slots[i]
-        for j, p in enumerate(players):
-            if used_mask & (1 << j) or not _eligible(p, slot):
-                continue
-            filled, points, assignment = solve(i + 1, used_mask | (1 << j))
-            points_here = float(p.get("projection", {}).get("median_fantasy_points", 0.0) or 0.0)
-            candidate = (filled + 1, points + points_here, ((i, slot, j),) + assignment)
-            if (candidate[0], candidate[1]) > (best[0], best[1]):
-                best = candidate
-        return best
-
-    filled, total, raw = solve(0, 0)
+    # Exact maximum-weight bipartite assignment, polynomial in roster size.
+    # An occupied slot is always preferable to an empty one, regardless of points.
+    # Each slot has its own dummy player so vacancies remain legal.
+    n=len(slots); m=len(players); cols=m+n
+    bonus=1.0 + sum(abs(float((x.get("projection") or {}).get("median_fantasy_points") or 0)) for x in players)
+    # Stable tie-break: when points and filled-slot counts are equal, prefer
+    # mandatory positional slots over flexible slots. The perturbation is only
+    # used to resolve numerically tied assignments, never for reported points.
+    slot_priority = {"SUPER_FLEX": 0, "FLEX": 1, "WR_RB": 1, "WR_TE": 1}
+    tie_epsilon = 1e-9
+    weight=[]
+    for i,slot in enumerate(slots):
+        priority = slot_priority.get(slot, 2)
+        weight.append([bonus+float((x.get("projection") or {}).get("median_fantasy_points") or 0)+tie_epsilon*priority if _eligible(x,slot) else -1e12 for x in players]+[0.0]*n)
+    # Hungarian algorithm (min-cost form, rectangular n <= cols).
+    u=[0.0]*(n+1); v=[0.0]*(cols+1); match=[0]*(cols+1); way=[0]*(cols+1)
+    for i in range(1,n+1):
+        match[0]=i; j0=0; minv=[float('inf')]*(cols+1); used=[False]*(cols+1)
+        while True:
+            used[j0]=True; i0=match[j0]; delta=float('inf'); j1=0
+            for j in range(1,cols+1):
+                if used[j]: continue
+                cur=-weight[i0-1][j-1]-u[i0]-v[j]
+                if cur<minv[j]: minv[j]=cur; way[j]=j0
+                if minv[j]<delta: delta=minv[j]; j1=j
+            for j in range(cols+1):
+                if used[j]: u[match[j]]+=delta; v[j]-=delta
+                else: minv[j]-=delta
+            j0=j1
+            if match[j0]==0: break
+        while True:
+            j1=way[j0]; match[j0]=match[j1]; j0=j1
+            if j0==0: break
+    raw=[]
+    for j in range(1,cols+1):
+        if match[j] and j<=m and weight[match[j]-1][j-1]>-1e11:
+            i=match[j]-1; raw.append((i,slots[i],j-1))
+    raw.sort()
+    filled=len(raw)
+    total=sum(float((players[j].get("projection") or {}).get("median_fantasy_points") or 0) for _,_,j in raw)
     assignment = []
     filled_indices = set()
     for slot_index, slot, j in raw:
@@ -77,14 +98,22 @@ def optimize_lineup(players, slots):
             "team": p.get("team"),
             "median_fantasy_points": p.get("projection", {}).get("median_fantasy_points", 0.0),
             "high_fantasy_points": _projection_high(p.get("projection") or {}),
+            "low_fantasy_points": (p.get("projection") or {}).get("low"),
+            "hit_fantasy_points": (p.get("projection") or {}).get("hit"),
         })
     high_values = [a.get("high_fantasy_points") for a in assignment]
+    low_values = [a.get("low_fantasy_points") for a in assignment]
+    hit_values = [a.get("hit_fantasy_points") for a in assignment]
     # A missing high projection is unknown, not zero: never invent an upper bound.
     high_total = round(sum(float(v) for v in high_values), 4) if all(v is not None for v in high_values) else None
     open_slot_names = [slot for i, slot in enumerate(slots) if i not in filled_indices]
     return {
         "median_points": round(total, 4),
         "high_points": high_total,
+        "low_points": round(sum(float(v) for v in low_values),4) if all(v is not None for v in low_values) else None,
+        "hit_points": round(sum(float(v) for v in hit_values if v is not None),4),
+        "hit_coverage": sum(v is not None for v in hit_values),
+        "hit_complete": all(v is not None for v in hit_values),
         "assignment": assignment,
         "filled_slots": filled,
         "open_slots": len(open_slot_names),

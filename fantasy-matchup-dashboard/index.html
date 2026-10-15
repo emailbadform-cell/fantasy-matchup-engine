@@ -159,18 +159,21 @@ pre { margin:0; padding:12px; border-top:1px solid var(--line); max-height:330px
     </div>
 
     <div id="status">Ready to load a projection.</div><div id="waiverProgress" style="display:none;margin:-10px 0 22px;padding:12px;border:1px solid var(--line);border-radius:10px;background:rgba(18,24,36,.62)"><div style="display:flex;justify-content:space-between;gap:12px"><strong id="waiverStage">Preparing…</strong><span id="waiverCount" class="muted"></span></div><div style="height:10px;background:#0d131e;border-radius:999px;overflow:hidden;margin:9px 0"><div id="waiverBar" style="height:100%;width:0%;background:linear-gradient(90deg,#6879ff,#8794ff);transition:width .25s"></div></div><div id="waiverTiming" style="color:var(--muted);font-size:12px"></div></div>
-    <section class="card" style="margin-bottom:18px;padding:18px">
-      <h2 style="margin:0 0 10px">Individual Player Projections</h2>
-      <p class="muted" style="margin:0 0 12px">Enter one player per line (or separate names with semicolons). Compare up to 20 players using the same FME prediction engine.</p>
-      <textarea id="individualNames" rows="3" placeholder="Courtland Sutton (DEN)&#10;Roman Wilson (PIT)" style="width:100%;padding:12px;border-radius:9px;background:#0d131e;color:inherit;border:1px solid var(--line);resize:vertical"></textarea>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px">
-        <label for="individualScoring">Without league:</label><select id="individualScoring"><option value="ppr">PPR</option><option value="half">Half PPR</option><option value="standard">Standard</option></select>
-        <button id="projectIndividuals">Project Players</button><span class="muted" id="individualStatus"></span>
-      </div>
-      <div id="individualResults" style="margin-top:12px"></div>
-    </section>
     <div id="summary"></div>
     <div id="table"></div>
+    <section class="card" style="margin:20px 0;padding:20px">
+      <h2>Individual Player Projections</h2>
+      <p class="muted">Search up to 20 players, including players outside your roster.</p>
+      <textarea id="playerNames" rows="3" placeholder="Enter player names, one per line or separated by semicolons" style="width:100%;background:#0e1521;color:white;border:1px solid #344158;border-radius:8px;padding:12px"></textarea>
+      <div style="display:flex;align-items:center;gap:12px;margin:12px 0">
+        <label><input type="checkbox" id="playerUseLeague" checked> Use loaded league scoring</label>
+        <select id="playerScoring"><option value="ppr">PPR</option><option value="half">Half PPR</option><option value="standard">Standard</option></select>
+        <button id="projectNamedPlayers">Project Players</button>
+      </div>
+      <div id="playerSearchStatus" class="muted"></div>
+      <div id="playerSearchResults"></div>
+    </section>
+
     <div id="optimal"></div>
     <div id="waiverResults"></div>
     <div id="bench"></div>
@@ -245,6 +248,7 @@ function loadPrediction() {
             renderSummary(data, starters);
             renderTable(starters, data.team.lineup_slots || [], data.platform);
             renderBench((data.team && data.team.bench) || []);
+            // Independent player search is available above, including non-roster players.
             document.getElementById("optimal").innerHTML = "";
             renderDetails(starters);
             optimizeButton.disabled = !data.team || !Array.isArray(data.team.roster) || !Array.isArray(data.team.lineup_slots);
@@ -269,6 +273,7 @@ function loadPrediction() {
             loadButton.textContent = "Load Projection";
         });
 }
+function formatHit(value) { return value == null || !Number.isFinite(Number(value)) ? 'N/A' : formatNumber(value); }
 function renderSummary(data, starters) {
     var total = 0, highTotal = 0, usable = 0;
     starters.forEach(function(player) {
@@ -284,6 +289,7 @@ function renderSummary(data, starters) {
     document.getElementById("summary").innerHTML =
         '<div class="summary">' +
         card("Projected Team Points (Median–High)", formatNumber(total) + " – " + formatNumber(highTotal)) +
+        card("Projected Hit Points", formatHit((data.team || {}).hit_projected_fantasy_points) + ((data.team || {}).hit_projection_complete === false ? " (partial)" : "")) +
         card("Starters", starters.length) +
         card("Usable Projections", usable + " / " + starters.length) +
         card("Model Version", escapeHtml(version), "small") +
@@ -338,7 +344,7 @@ function renderTable(starters, leagueSlots, platform) {
     var html =
         '<div class="section-title"><h2>Starting Lineup</h2><span>League slot order · Low / median / high fantasy-point outcomes</span></div>' +
         '<div class="table-shell"><table><thead><tr>' +
-        '<th>Slot</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data</th>' +
+        '<th>Slot</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Hit</th><th>Data</th>' +
         '</tr></thead><tbody>';
     lineupDisplayRows(starters, leagueSlots, platform).forEach(function(entry) {
         var player = entry.player;
@@ -352,6 +358,7 @@ function renderTable(starters, leagueSlots, platform) {
             '<td class="points">' + formatNumber((player.projection || {}).low) + '</td>' +
             '<td class="points">' + formatNumber(getPoints(player)) + '</td>' +
             '<td class="points">' + formatNumber((player.projection || {}).high) + '</td>' +
+            '<td class="points">' + formatHit((player.projection || {}).hit) + '</td>' +
             '<td>' + playerDataLabel(player) + '</td>' +
             '</tr>';
     });
@@ -361,15 +368,53 @@ function renderTable(starters, leagueSlots, platform) {
 function renderBench(bench) {
     if (!bench.length) { document.getElementById("bench").innerHTML = ""; return; }
     var html = '<div class="section-title"><h2>Bench</h2><span>Current-week projections</span></div>' +
-        '<div class="table-shell"><table><thead><tr><th>Pos</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data</th></tr></thead><tbody>';
+        '<div class="table-shell"><table><thead><tr><th>Pos</th><th>Player</th><th>Team</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Hit</th><th>Data</th></tr></thead><tbody>';
     bench.forEach(function(player) {
         html += '<tr><td><span class="pos">' + escapeHtml(player.position || "—") + '</span></td>' +
             '<td class="player-name">' + escapeHtml(player.name || "Unknown") + '</td><td>' + escapeHtml(player.team || "—") + '</td>' +
             '<td class="matchup">vs ' + escapeHtml(player.opponent || "—") + '</td><td class="points">' + formatNumber((player.projection || {}).low) + '</td>' +
             '<td class="points">' + formatNumber(getPoints(player)) + '</td><td class="points">' + formatNumber((player.projection || {}).high) + '</td>' +
+            '<td class="points">' + formatHit((player.projection || {}).hit) + '</td>' +
             '<td>' + playerDataLabel(player) + '</td></tr>';
     });
     html += '</tbody></table></div>'; document.getElementById("bench").innerHTML = html;
+}
+function projectNamedPlayers() {
+    var names=document.getElementById('playerNames').value;
+    var btn=document.getElementById('projectNamedPlayers');
+    var status=document.getElementById('playerSearchStatus');
+    var useLeague=document.getElementById('playerUseLeague').checked;
+    var source=document.getElementById('source').value;
+    var payload={names:names,platform:source,season:2026,week:Number(document.getElementById('week').value)||1,
+      scoring:document.getElementById('playerScoring').value};
+    if(useLeague && lastPrediction && lastPrediction.platform===source) payload.league_id=lastPrediction.league_id;
+    btn.disabled=true;status.textContent='Projecting players…';
+    fetch('/api/v1/players/project',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+      .then(function(r){if(!r.ok)return r.text().then(function(t){throw Error(t.slice(0,300))});return r.json()})
+      .then(function(data){
+        var out='<div class="table-shell"><table><thead><tr><th>Player</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Hit</th><th>Data Status</th></tr></thead><tbody>';
+        (data.players||[]).forEach(function(x){var q=x.projection||{};
+          out+='<tr><td>'+escapeHtml(x.name||x.query)+'</td><td>'+escapeHtml(x.opponent||'—')+'</td><td>'+formatNumber(q.low)+'</td><td>'+formatNumber(q.median_fantasy_points)+'</td><td>'+formatNumber(q.high)+'</td><td>'+formatHit(q.hit)+'</td><td>'+escapeHtml(x.status||'unknown')+'</td></tr>';
+        });
+        document.getElementById('playerSearchResults').innerHTML=out+'</tbody></table></div>';
+        status.textContent='Finished · '+data.scoring_source+' scoring';
+      }).catch(function(e){status.textContent='Projection failed: '+e.message;})
+      .finally(function(){btn.disabled=false;});
+}
+document.getElementById('projectNamedPlayers').addEventListener('click',projectNamedPlayers);
+function renderProjectPlayers(players) {
+    var host=document.getElementById("projectPlayers");
+    if(!players || !players.length){host.innerHTML="";return;}
+    var html='<div class="section-title"><h2>Project Players</h2><span>Full roster · Low / Median / High / Hit</span></div>'+
+      '<div class="table-shell"><table><thead><tr><th>Player</th><th>Position</th><th>Team</th><th>Low</th><th>Median</th><th>High</th><th>Hit</th></tr></thead><tbody>';
+    players.forEach(function(p){var v=p.projection||{};
+      html+='<tr><td class="player-name">'+escapeHtml(p.name||"Unknown")+'</td><td>'+escapeHtml(p.position||"—")+
+        '</td><td>'+escapeHtml(p.team||"—")+'</td><td class="points">'+formatNumber(v.low)+
+        '</td><td class="points">'+formatNumber(v.median_fantasy_points)+
+        '</td><td class="points">'+formatNumber(v.high)+
+        '</td><td class="points">'+formatHit(v.hit)+'</td></tr>';
+    });
+    host.innerHTML=html+'</tbody></table></div>';
 }
 function optimizeLineup() {
     if (!lastPrediction || !lastPrediction.team) return;
@@ -382,10 +427,10 @@ function optimizeLineup() {
 }
 function renderOptimal(opt) {
     var rows=opt.assignment || []; var html='<div class="section-title"><h2>Optimal Lineup</h2><span>Maximizes current-week median projected points</span></div>' +
-      '<div class="summary">' + card("Optimal Team Points (Median–High)", formatNumber(opt.median_points || 0) + " – " + (opt.high_points == null ? "N/A" : formatNumber(opt.high_points))) + card("Filled Slots", String(opt.filled_slots == null ? rows.length : opt.filled_slots)) + card("Open Slots", String(opt.open_slots || 0)) + card("Objective", "Median", "small") + '</div>' +
-      '<div class="table-shell"><table><thead><tr><th>Slot</th><th>Pos</th><th>Player</th><th>Team</th><th>Median</th></tr></thead><tbody>';
-    rows.forEach(function(x){ html += '<tr><td><span class="pos">' + escapeHtml(x.slot) + '</span></td><td>' + escapeHtml(x.position || "—") + '</td><td class="player-name">' + escapeHtml(x.name || "Unknown") + '</td><td>' + escapeHtml(x.team || "—") + '</td><td class="points">' + formatNumber(x.median_fantasy_points) + '</td></tr>'; });
-    (opt.open_slot_names || []).forEach(function(slot){ html += '<tr><td><span class="pos">' + escapeHtml(slot) + '</span></td><td>—</td><td class="player-name"><strong>OPEN — no eligible player</strong></td><td>—</td><td class="points">0.00</td></tr>'; });
+      '<div class="summary">' + card("Optimal Team Points (Median–High)", formatNumber(opt.median_points || 0) + " – " + (opt.high_points == null ? "N/A" : formatNumber(opt.high_points))) + card("Projected Hit Points", formatHit(opt.hit_points != null ? opt.hit_points : rows.reduce(function(t,x){return t+(Number(x.hit_fantasy_points)||0);},0)) + (opt.hit_complete === false ? " (partial)" : "")) + card("Filled Slots", String(opt.filled_slots == null ? rows.length : opt.filled_slots)) + card("Open Slots", String(opt.open_slots || 0)) + card("Objective", "Median", "small") + '</div>' +
+      '<div class="table-shell"><table><thead><tr><th>Slot</th><th>Pos</th><th>Player</th><th>Team</th><th>Low</th><th>Median</th><th>High</th><th>Hit</th></tr></thead><tbody>';
+    rows.forEach(function(x){ html += '<tr><td><span class="pos">' + escapeHtml(x.slot) + '</span></td><td>' + escapeHtml(x.position || "—") + '</td><td class="player-name">' + escapeHtml(x.name || "Unknown") + '</td><td>' + escapeHtml(x.team || "—") + '</td><td class="points">' + formatNumber(x.low_fantasy_points) + '</td><td class="points">' + formatNumber(x.median_fantasy_points) + '</td><td class="points">' + formatNumber(x.high_fantasy_points) + '</td><td class="points">' + formatHit(x.hit_fantasy_points) + '</td></tr>'; });
+    (opt.open_slot_names || []).forEach(function(slot){ html += '<tr><td><span class="pos">' + escapeHtml(slot) + '</span></td><td>—</td><td class="player-name"><strong>OPEN — no eligible player</strong></td><td>—</td><td class="points">0.00</td><td class="points">0.00</td><td class="points">0.00</td><td class="points">N/A</td></tr>'; });
     html += '</tbody></table></div>'; document.getElementById("optimal").innerHTML=html;
 }
 
@@ -413,7 +458,7 @@ function renderWaivers(w) {
     var html='<div class="section-title"><h2>Waiver Upgrades</h2><span>Starting-lineup improvements; future-season drop cost not yet modeled</span></div>';
     if(!moves.length){html+='<div class="card"><div class="label">Recommendation</div><div class="value small">No positive current-week starting-lineup upgrade found.</div></div>';document.getElementById("waiverResults").innerHTML=html;return;}
     html+='<div class="summary">'+card("Potential Moves",moves.length)+card("Projected Candidates",w.available_projected_count||w.evaluated_candidates||0)+card("Final Optimal Points",formatNumber(w.final_optimal_team_points||0))+card("Objective","Median","small")+'</div>'+
-      '<div class="table-shell"><table><thead><tr><th>Pickup</th><th>Roster Drop</th><th>New Starter</th><th>Projected Gain</th><th>Decision</th></tr></thead><tbody>';
+      '<div class="table-shell"><table><thead><tr><th>Pickup</th><th>Roster Drop</th><th>New Starter</th><th>Projected Gain</th><th>Low</th><th>Median</th><th>High</th><th>Hit</th><th>Decision</th></tr></thead><tbody>';
     moves.forEach(function(m){
       var a=m.pickup||{}, d=m.drop||{};
       var starter=m.new_starter||a.name||'Unknown';
@@ -422,6 +467,7 @@ function renderWaivers(w) {
       html+='<tr><td class="player-name">'+escapeHtml(a.name||'Unknown')+' ('+escapeHtml(a.position||'—')+')</td>'+
         '<td class="player-name">'+escapeHtml(d.name||'Unknown')+' ('+escapeHtml(d.position||'—')+')</td>'+
         '<td>'+escapeHtml(starter)+'</td><td class="points">+'+formatNumber(m.team_points_gain)+'</td>'+
+        '<td class="points">'+formatHit(m.low)+'</td><td class="points">'+formatHit(m.median)+'</td><td class="points">'+formatHit(m.high)+'</td><td class="points">'+formatHit(m.hit)+'</td>'+
         '<td title="'+escapeHtml(reason)+'">'+escapeHtml(decision)+'</td></tr>';
     });
     html+='</tbody></table></div><p class="muted" style="margin-top:10px">Advisory only. Current-week lineup gain does not establish that the roster drop is worth making.</p>';
@@ -435,7 +481,7 @@ function renderDetails(starters) {
         var projection = player.projection || {};
         var stats = "";
         Object.keys(projection).forEach(function(key) {
-            if (key === "median_fantasy_points" || key === "low" || key === "high") return;
+            if (key === "median_fantasy_points" || key === "low" || key === "high" || key === "hit") return;
             stats += '<div class="stat"><div class="label">' + escapeHtml(displayKey(key)) +
                 '</div><div class="value">' + formatNumber(projection[key]) + '</div></div>';
         });
@@ -448,7 +494,8 @@ function renderDetails(starters) {
             escapeHtml(player.team || "—") + ' vs ' + escapeHtml(player.opponent || "—") + '</div>' +
             '</div><div class="proj"><div class="big">' + formatNumber(getPoints(player)) +
             '</div><div class="caption">Projected Pts</div></div></div>' +
-            '<div class="stats">' + stats + '</div>' +
+            '<div class="stats"><div class="stat"><div class="label">Hit Fantasy Points</div><div class="value">'+formatHit(projection.hit)+'</div></div>' + stats + '</div>' +
+            detailBlock('Hit Rates & Defensive Allowances', player.hit_analysis || {}) +
             detailBlock("Factors", player.factors || {}) +
             detailBlock("Layer Audit", player.layer_audit || {}) +
             detailBlock("Factor Ownership Ledger", player.factor_ledger || {}) +
@@ -462,38 +509,6 @@ function detailBlock(title, value) {
     return '<details><summary>' + escapeHtml(title) + '</summary><pre>' +
         escapeHtml(JSON.stringify(value, null, 2)) + '</pre></details>';
 }
-
-function projectIndividualPlayers() {
-    var raw=document.getElementById("individualNames").value;
-    var names=raw.split(/[\n;]+/).map(function(x){return x.trim();}).filter(Boolean);
-    var status=document.getElementById("individualStatus"), button=document.getElementById("projectIndividuals");
-    if(!names.length || names.length>20){status.textContent="Enter 1–20 player names.";return;}
-    var platform=sourceSelect.value, league=document.getElementById("league").value.trim(), team=document.getElementById("username").value.trim();
-    // League settings are only used after a successful league prediction, avoiding stale or mismatched credentials.
-    var useLeague=lastPrediction && lastPrediction.platform===platform && String(lastPrediction.league_id)===league &&
-        String(lastPrediction.team.username)===team;
-    var payload={names:names,week:Number(document.getElementById("week").value),season:2026,
-        platform:useLeague?platform:"standard",scoring:document.getElementById("individualScoring").value};
-    if(useLeague){payload.league_id=league;payload.team_ref=team;}
-    button.disabled=true;status.textContent="Running projections…";
-    fetch("/api/v1/players/project",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
-      .then(function(r){return r.json().then(function(j){if(!r.ok)throw Error(j.detail||"Request failed");return j;});})
-      .then(function(data){
-        var html='<div class="muted" style="margin-bottom:8px">Scoring: '+escapeHtml(data.platform==="standard"?data.scoring.toUpperCase():data.platform.toUpperCase()+" league")+'</div>';
-        html+='<div style="overflow-x:auto"><table style="width:100%"><thead><tr><th>Player</th><th>Matchup</th><th>Low</th><th>Median</th><th>High</th><th>Data status</th></tr></thead><tbody>';
-        (data.players||[]).forEach(function(item){
-          if(item.status!=="ok"){
-            html+='<tr><td>'+escapeHtml(item.query)+'</td><td colspan="5">'+escapeHtml(item.status+(item.detail?": "+item.detail:""))+'</td></tr>';return;
-          }
-          var p=item.player,pr=p.projection||{},dq=p.data_quality||{};
-          html+='<tr><td>'+escapeHtml(p.name)+' ('+escapeHtml(p.team)+', '+escapeHtml(p.position)+')</td><td>'+escapeHtml(p.opponent||"—")+'</td><td>'+formatNumber(pr.low)+'</td><td><strong>'+formatNumber(pr.median_fantasy_points)+'</strong></td><td>'+formatNumber(pr.high)+'</td><td>'+escapeHtml(dq.projection_status||dq.status||"—")+'</td></tr>';
-        });
-        document.getElementById("individualResults").innerHTML=html+'</tbody></table></div>';
-        status.textContent="Finished.";
-      }).catch(function(err){status.textContent="Projection failed: "+err.message;})
-      .finally(function(){button.disabled=false;});
-}
-document.getElementById("projectIndividuals").addEventListener("click",projectIndividualPlayers);
 
 updateSourceUI();
 loadButton.addEventListener("click", loadPrediction);
