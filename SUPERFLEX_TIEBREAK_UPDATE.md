@@ -1,0 +1,1 @@
+Combined with FME_HIT_100K_NFLVERSE_DIAGNOSTICS_COMBINED.zip. Corrected SUPER_FLEX tie-breaking to favor mandatory positional slots when projections are equal; updated the outdated empty-slot expectation and added tests. No changes to nflverse caching, 100K QB setting, or projection formulas.

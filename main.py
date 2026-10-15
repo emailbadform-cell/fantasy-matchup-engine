@@ -2,7 +2,6 @@ from pathlib import Path
 import threading, time, uuid
 
 from fastapi import FastAPI, HTTPException, Query
-from pydantic import BaseModel, Field
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
@@ -181,81 +180,6 @@ def model_gate():
         "requires_data_propagation": True,
         "note": "Functional completeness describes the primary PredictionEngine path; legacy architecture contracts are not counted as wired predictive engines.",
     }
-
-
-class IndividualProjectionRequest(BaseModel):
-    names: list[str] = Field(min_length=1, max_length=20)
-    week: int = Field(ge=1, le=18)
-    season: int = 2026
-    platform: str = "standard"
-    league_id: str | None = None
-    team_ref: str | None = None
-    scoring: str = "ppr"
-
-
-def _individual_name_key(name):
-    import re
-    return re.sub(r"[^a-z0-9]", "", str(name or "").lower())
-
-
-def _find_individual_player(universe, query):
-    import re
-    q = str(query).strip()
-    # Optional team qualifier: 'Courtland Sutton, DEN' or 'Courtland Sutton (DEN)'.
-    match = re.match(r"^(.*?)\s*(?:\((\w{2,3})\)|,\s*(\w{2,3}))$", q)
-    name, team = (match.group(1), (match.group(2) or match.group(3)).upper()) if match else (q, None)
-    key = _individual_name_key(name)
-    matches=[]
-    for pid, player in universe.items():
-        if not isinstance(player,dict): continue
-        names = [player.get("full_name"),player.get("name"),player.get("first_name","")+" "+player.get("last_name","")]
-        if key not in {_individual_name_key(n) for n in names}: continue
-        if team and str(player.get("team") or "").upper()!=team: continue
-        if str(player.get("position") or "").upper() not in {"QB","RB","WR","TE","K","DEF","DST"}: continue
-        matches.append((pid,player))
-    # Never arbitrarily select between multiple distinct identities.
-    return matches
-
-
-@app.post("/api/v1/players/project")
-def project_individual_players(request: IndividualProjectionRequest):
-    if request.platform not in {"standard","sleeper","espn"}: raise HTTPException(400,"Invalid platform")
-    if request.scoring not in {"ppr","half","standard"}: raise HTTPException(400,"Invalid scoring preset")
-    if request.platform != "standard" and not request.league_id:
-        raise HTTPException(400,"League ID required for league-specific scoring")
-    try:
-        engine=_engine()
-        universe=engine.sleeper.get_players()
-        if request.platform == "sleeper":
-            settings=engine.sleeper.get_scoring_settings(request.league_id) or {}
-        elif request.platform == "espn":
-            if not request.team_ref or not str(request.team_ref).isdigit():
-                raise HTTPException(400,"ESPN Team ID required for league scoring")
-            ctx=ESPNClient(season=request.season).normalized(request.league_id,int(request.team_ref),request.week)
-            settings=ctx.get("scoring_settings") or {}
-        else:
-            settings={"rec": {"ppr":1.0,"half":0.5,"standard":0.0}[request.scoring]}
-        output=[]
-        for raw in request.names:
-            name=str(raw).strip()
-            if not name: continue
-            matches=_find_individual_player(universe,name)
-            if len(matches)!=1:
-                output.append({"query":name,"status":"ambiguous" if matches else "not_found", "matches":[{"name":p.get("full_name") or p.get("name"),"team":p.get("team"),"position":p.get("position")} for _,p in matches[:8]]})
-                continue
-            pid,player=matches[0]
-            candidate=dict(player,player_id=pid)
-            try:
-                projection=engine.project_candidate(candidate,universe,request.season,request.week,settings)
-                if projection is None:
-                    output.append({"query":name,"status":"no_game","name":player.get("full_name") or player.get("name")})
-                else:
-                    output.append({"query":name,"status":"ok","player":projection})
-            except Exception as exc:
-                output.append({"query":name,"status":"error","detail":str(exc)[:240]})
-        return {"season":request.season,"week":request.week,"platform":request.platform,"scoring":request.scoring if request.platform=="standard" else "league","players":output}
-    except HTTPException: raise
-    except (SleeperAPIError, ESPNAPIError, NFLVerseAPIError) as exc: raise HTTPException(502,str(exc)) from exc
 
 
 @app.get("/api/v1/fantasy/espn/league/{league_id}/team/{team_id}/week/{week}/prediction")
@@ -544,6 +468,48 @@ def lineup_optimize(payload: dict):
     }
 
 
+@app.post("/api/v1/players/project")
+def project_named_players(payload: dict):
+    """Independent named-player search; shared projection model, platform-specific scoring."""
+    names=payload.get("names") or []
+    if isinstance(names,str):
+        import re
+        names=[x.strip() for x in re.split(r"[\n;]+",names) if x.strip()]
+    names=[str(n).strip() for n in names if str(n).strip()][:20]
+    if not names: raise HTTPException(400,"Enter at least one player name")
+    platform=str(payload.get("platform") or "sleeper").lower()
+    if platform not in {"espn","sleeper"}: raise HTTPException(400,"Unsupported platform")
+    season=int(payload.get("season") or 2026); week=int(payload.get("week") or 1)
+    engine=_engine(); universe=engine.sleeper.get_players()
+    settings={"rec":1.0}
+    league_id=payload.get("league_id")
+    if league_id:
+        if platform=="espn": settings=ESPNClient(season=season).scoring_settings(league_id)
+        else: settings=engine.sleeper.get_league(league_id).get("scoring_settings") or settings
+    else:
+        scoring=str(payload.get("scoring") or "ppr").lower()
+        settings={"rec": 1.0 if scoring=="ppr" else .5 if scoring=="half" else 0.0}
+    import re
+    def norm(n): return re.sub(r"[^a-z0-9]","",str(n or "").lower())
+    index={}
+    for sid,player in universe.items():
+        if not isinstance(player,dict): continue
+        for label in (player.get("full_name"),player.get("first_name"," ")+" "+player.get("last_name", "")):
+            if norm(label): index.setdefault(norm(label),(sid,player))
+    results=[]
+    for name in names:
+        found=index.get(norm(name))
+        if not found:
+            results.append({"query":name,"status":"player_not_found","projection":None}); continue
+        sid,player=found
+        row=engine.project_candidate({**player,"player_id":sid},universe,season,week,settings)
+        if row is None:
+            results.append({"query":name,"name":player.get("full_name"),"status":"no_scheduled_game","projection":None})
+        else:
+            row["query"]=name; row["status"]="projected"; results.append(row)
+    return {"platform":platform,"season":season,"week":week,"players":results,"scoring_source":platform if league_id else "manual"}
+
+
 @app.post("/api/v1/waivers/start/{platform}/league/{league_id}/team/{team_ref}/week/{week}")
 def start_waiver_job(platform: str, league_id: str, team_ref: str, week: int, season: int = Query(2026)):
     jid=uuid.uuid4().hex
@@ -588,6 +554,7 @@ def waiver_recommendations(platform: str, league_id: str, team_ref: str, week: i
             prediction=engine.predict_espn_team(espn,league_id,team_id,season,week)
             settings=prediction.get("scoring_settings") or {}; starters=[x.get("player_id") for x in prediction["team"]["starters"]]
             wanted=set(espn.available_player_ids(league_id,week,1000))
+            if not wanted: raise ESPNAPIError("ESPN returned no available player IDs; refusing Sleeper waiver fallback")
             # Stable ESPN-ID -> Sleeper player mapping. This is the same canonical universe used by FME.
             ids=[]; mapped_espn=set(); gsis_to_sid={}
             for sid,p in universe.items():
@@ -600,13 +567,14 @@ def waiver_recommendations(platform: str, league_id: str, team_ref: str, week: i
             # Same universal bridge used by ESPN roster identity: ESPN -> nflverse GSIS -> Sleeper.
             for eid,gs in espn._nflverse_identity_index().items():
                 if eid in wanted and eid not in mapped_espn and str(gs) in gsis_to_sid:
-                    ids.append(gsis_to_sid[str(gs)])
+                    ids.append(gsis_to_sid[str(gs)]); mapped_espn.add(eid)
         else:
             prediction=engine.predict_team(league_id,team_ref,season,week)
             settings=prediction.get("scoring_settings") or {}; starters=[x.get("player_id") for x in prediction["team"]["starters"]]
             rostered=set()
             for r in sleeper.get_rosters(league_id): rostered.update(str(x) for x in (r.get("players") or []))
             ids=[str(sid) for sid,p in universe.items() if str(sid) not in rostered and isinstance(p,dict)]
+        ids=list(dict.fromkeys(ids))
         # Keep only active NFL fantasy positions with a current team. ESPN is already ownership-ranked;
         # Sleeper candidates are reduced to active rosterable players before FME projection.
         eligible=[]
@@ -618,7 +586,9 @@ def waiver_recommendations(platform: str, league_id: str, team_ref: str, week: i
             status=str(p.get("status") or "Active").lower()
             if status in {"retired","inactive"}: continue
             q=dict(p); q["player_id"]=sid; eligible.append(q)
-        eligible=eligible[:1000] if platform=="espn" else eligible
+        # Do not truncate eligible players by platform or arbitrary pool size.
+        # Exact ownership/position/team eligibility rules above determine the pool.
+        sleeper_pool_total=len(eligible)
         _job_update(job_id,stage="Projecting viable players",processed=0,total=len(eligible),percent=12)
         projected=[]
         for i,p in enumerate(eligible,1):
@@ -629,7 +599,7 @@ def waiver_recommendations(platform: str, league_id: str, team_ref: str, week: i
             if row and (row.get("data_quality") or {}).get("history_complete",True): projected.append(row)
         projected.sort(key=lambda x: float((x.get("projection") or {}).get("median_fantasy_points") or 0), reverse=True)
         # Exact swap evaluation is expensive; the highest current-week projections contain the actionable pool.
-        candidates=projected[:80]
+        candidates=projected
         roster=prediction["team"].get("roster") or []
         # Use the actual NFL schedule: absence of a team game identifies a bye.
         # Do not infer a bye from a zero projection or an injury status.
@@ -643,6 +613,8 @@ def waiver_recommendations(platform: str, league_id: str, team_ref: str, week: i
         def swap_progress(done,total,move_idx): _job_update(job_id,stage="Evaluating waiver candidates",processed=done,total=total,percent=72+int(24*done/max(1,total)))
         advice=recommend_waiver_moves(roster,candidates,slots,max_moves=12,min_gain=.01,progress=swap_progress,cancelled=lambda:_job_cancelled(job_id))
         advice["platform"]=platform; advice["week"]=week; advice["available_projected_count"]=len(projected)
+        advice["eligible_pool_total"]=len(eligible) if platform=="espn" else sleeper_pool_total
+        advice["candidate_pool_truncated"]=bool(platform=="sleeper" and sleeper_pool_total>len(eligible))
         advice["top_available"]=[{"player_id":x.get("player_id"),"name":x.get("name"),"position":x.get("position"),"team":x.get("team"),"median_fantasy_points":round(float((x.get("projection") or {}).get("median_fantasy_points") or 0),2)} for x in candidates[:20]]
         _job_update(job_id,stage="Complete",percent=100,processed=len(projected),total=len(projected))
         return {"architecture_version":MODEL_VERSION,"waiver_advisor":advice}

@@ -3,6 +3,7 @@ import re
 from .features import *
 from .layers import PREDICTIVE_LAYERS, propagation_audit
 from .qb_monte_carlo import simulate_qb_stats
+from .hit_projection import hit_projection
 
 DEF_TEAMS = {"ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB","HOU","IND","JAX","KC","LV","LAC","LA","MIA","MIN","NE","NO","NYG","NYJ","PHI","PIT","SF","SEA","TB","TEN","WAS"}
 
@@ -376,7 +377,7 @@ class PredictionEngine:
         stat_sim = None
         if pos == "QB":
             import os
-            stat_n = int(os.getenv("FME_QB_STAT_MC_N", "1000000"))
+            stat_n = int(os.getenv("FME_QB_STAT_MC_N", "100000"))
             stat_sim = simulate_qb_stats(
                 base_stats, history, settings, n=stat_n,
                 seed=13013 + sum(ord(c) for c in str(pid)),
@@ -430,10 +431,17 @@ class PredictionEngine:
         }
         if not dq["history_complete"]:
             dq["projection_status"] = "data_pending"
+        # Separate Hit projection: opponent allowances are sourced only from prior weeks.
+        try:
+            hit = hit_projection(pos, history, opp_defense,
+                                 self.nfl.team_stats(season), self.nfl.player_stats(season),
+                                 opponent, week, base_stats, settings)
+        except Exception as exc:
+            hit = {"points":None,"status":"unavailable","reason":type(exc).__name__,"stats":{}}
         return {
             "player_id":pid,"name":player.get("full_name") or player.get("name"),"position":pos,"eligible_positions":list(player.get("fantasy_positions") or ([pos] if pos else [])),"team":team,"opponent":opponent,
-            "historical_games":len(history),"historical":base,"identity":identity,
-            "projection":{**base_stats,"median_fantasy_points":(stat_sim["fantasy_points"]["p50"] if stat_sim else sim["p50"]),"low":(stat_sim["fantasy_points"]["p10"] if stat_sim else sim["p10"]),"high":(stat_sim["fantasy_points"]["p90"] if stat_sim else sim["p90"])},
+            "historical_games":len(history),"historical":base,"hit_analysis":hit,"identity":identity,
+            "projection":{**base_stats,"hit":(hit.get("points") if pos in {"QB","WR","TE"} else (stat_sim["fantasy_points"]["p50"] if stat_sim else sim["p50"])),"median_fantasy_points":(stat_sim["fantasy_points"]["p50"] if stat_sim else sim["p50"]),"low":(stat_sim["fantasy_points"]["p10"] if stat_sim else sim["p10"]),"high":(stat_sim["fantasy_points"]["p90"] if stat_sim else sim["p90"])},
             "distribution":sim,"stat_distribution":stat_sim,"confidence":confidence,"factors":factors,"layer_audit":propagation_audit(factors),
             "factor_ledger":factor_ledger,"provenance":provenance(factors),"data_quality":dq,"versioning":versioning(self.model_version),
         }
@@ -476,7 +484,7 @@ class PredictionEngine:
             p=self._resolve_player(players,pid); team=normalize_team(p.get("team") or p.get("nfl_team") or pid); game=self.nfl.team_game(season,week,team)
             is_starter=str(pid) in starter_set; slot_id=roster_slots.get(str(pid))
             if not game:
-                row={"player_id":pid,"name":p.get("full_name") or p.get("name"),"position":p.get("position"),"eligible_positions":list(p.get("fantasy_positions") or ([p.get("position")] if p.get("position") else [])),"team":team,"error":"NFL game not found","projection":{"median_fantasy_points":0,"low":0,"high":0},"data_quality":{"status":"unavailable"}}
+                row={"player_id":pid,"name":p.get("full_name") or p.get("name"),"position":p.get("position"),"eligible_positions":list(p.get("fantasy_positions") or ([p.get("position")] if p.get("position") else [])),"team":team,"error":"NFL game not found","projection":{"median_fantasy_points":0,"low":0,"high":0,"hit":None},"data_quality":{"status":"unavailable"}}
             else:
                 opponent=normalize_team(game.get("away_team")) if normalize_team(game.get("home_team"))==team else normalize_team(game.get("home_team"))
                 row=self._project_player(p,players,game,opponent,season,week,settings,starters)
@@ -488,7 +496,7 @@ class PredictionEngine:
         ir=[x for x in all_results if x.get("lineup_status")=="ir"]
         total=sum(x.get("projection",{}).get("median_fantasy_points",0) for x in results); gate=self._model_gate(results)
         lineup_slots=(ctx.get("lineup_settings") or {}).get("starter_slots") or []
-        return {"platform":"espn","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":ctx.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"scoring_coverage":coverage(settings,"espn"),"team":{"roster_id":ctx.get("team_id"),"owner_id":ctx.get("owner_id"),"username":str(team_id),"display_name":ctx.get("display_name"),"median_projected_fantasy_points":total,"starters":results,"bench":bench,"ir":ir,"roster":all_results,"lineup_slots":lineup_slots,"lineup_settings":ctx.get("lineup_settings") or {}},"opponent":{"roster_id":ctx.get("opponent_team_id"),"starters":[]},"integration":{"unresolved_roster_players":ctx.get("unresolved",[])},"model_gate":gate,"versioning":versioning(self.model_version)}
+        return {"platform":"espn","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":ctx.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"scoring_coverage":coverage(settings,"espn"),"team":{"roster_id":ctx.get("team_id"),"owner_id":ctx.get("owner_id"),"username":str(team_id),"display_name":ctx.get("display_name"),"median_projected_fantasy_points":total,"hit_projected_fantasy_points":round(sum(float(x.get("projection",{}).get("hit") or 0) for x in results),3),"hit_projection_complete":all(x.get("projection",{}).get("hit") is not None for x in results),"starters":results,"bench":bench,"ir":ir,"roster":all_results,"lineup_slots":lineup_slots,"lineup_settings":ctx.get("lineup_settings") or {}},"opponent":{"roster_id":ctx.get("opponent_team_id"),"starters":[]},"integration":{"unresolved_roster_players":ctx.get("unresolved",[])},"model_gate":gate,"versioning":versioning(self.model_version)}
 
     def predict_team(self, league_id, username, season, week):
         user,target,tm,oppm,opp,players=self._context(league_id,username,season,week)
@@ -504,7 +512,7 @@ class PredictionEngine:
         for pid in roster:
             p=self._resolve_player(players,pid); team=normalize_team(p.get("team") or p.get("nfl_team") or pid); game=self.nfl.team_game(season,week,team)
             if not game:
-                row={"player_id":pid,"name":p.get("full_name") or p.get("name"),"position":p.get("position"),"eligible_positions":list(p.get("fantasy_positions") or ([p.get("position")] if p.get("position") else [])),"team":team,"error":"NFL game not found","projection":{"median_fantasy_points":0,"low":0,"high":0},"data_quality":{"status":"unavailable"}}
+                row={"player_id":pid,"name":p.get("full_name") or p.get("name"),"position":p.get("position"),"eligible_positions":list(p.get("fantasy_positions") or ([p.get("position")] if p.get("position") else [])),"team":team,"error":"NFL game not found","projection":{"median_fantasy_points":0,"low":0,"high":0,"hit":None},"data_quality":{"status":"unavailable"}}
             else:
                 opponent=normalize_team(game.get("away_team")) if normalize_team(game.get("home_team"))==team else normalize_team(game.get("home_team"))
                 row=self._project_player(p,players,game,opponent,season,week,settings,starters)
@@ -520,7 +528,7 @@ class PredictionEngine:
         lineup_slots=[str(x).upper() for x in raw_positions if str(x).upper() not in {"BN","BENCH","IR","RESERVE","TAXI"}]
         total=sum(x.get("projection",{}).get("median_fantasy_points",0) for x in results)
         gate=self._model_gate(results)
-        return {"platform":"sleeper","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":tm.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"scoring_coverage":coverage(settings,"sleeper"),"team":{"roster_id":target.get("roster_id"),"owner_id":target.get("owner_id"),"username":user.get("username"),"display_name":user.get("display_name"),"median_projected_fantasy_points":total,"starters":results,"bench":bench,"ir":ir,"roster":[x for x in all_results if x.get("lineup_status") != "ir"],"lineup_slots":lineup_slots,"lineup_settings":{"roster_positions":raw_positions}},"opponent":{"roster_id":opp.get("roster_id") if opp else None,"starters":oppm.get("starters",[]) if oppm else []},"model_gate":gate,"versioning":versioning(self.model_version)}
+        return {"platform":"sleeper","schedule_source":"nflverse","architecture_version":self.model_version,"season":season,"week":week,"league_id":league_id,"matchup_id":tm.get("matchup_id"),"data_cutoff":cutoff(season,week),"scoring_settings":settings,"scoring_coverage":coverage(settings,"sleeper"),"team":{"roster_id":target.get("roster_id"),"owner_id":target.get("owner_id"),"username":user.get("username"),"display_name":user.get("display_name"),"median_projected_fantasy_points":total,"hit_projected_fantasy_points":round(sum(float(x.get("projection",{}).get("hit") or 0) for x in results),3),"hit_projection_complete":all(x.get("projection",{}).get("hit") is not None for x in results),"starters":results,"bench":bench,"ir":ir,"roster":[x for x in all_results if x.get("lineup_status") != "ir"],"lineup_slots":lineup_slots,"lineup_settings":{"roster_positions":raw_positions}},"opponent":{"roster_id":opp.get("roster_id") if opp else None,"starters":oppm.get("starters",[]) if oppm else []},"model_gate":gate,"versioning":versioning(self.model_version)}
 
     def project_candidate(self, player, players, season, week, settings, starters=()):
         """Project one waiver/free-agent candidate through the same FME path as roster players."""

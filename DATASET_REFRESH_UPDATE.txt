@@ -1,0 +1,7 @@
+FME NFLVERSE DATASET REFRESH UPDATE (built on FME_HIT_QB_100K_UPDATE)
+
+- Prevent per-player forced full-season nflverse downloads during projections and waiver scans.
+- Keep one dataset-level forced refresh per season/required week when the cached dataset lacks the required week.
+- Preserve disk and memory caches, existing projections, 100K QB simulations, and other features.
+- A missing individual player stat row does not trigger a network refresh.
+- Note: this does not guarantee nflverse publication freshness when the cache already contains the required week.
